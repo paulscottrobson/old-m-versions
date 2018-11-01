@@ -1,0 +1,117 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name : 		active.mz
+//		Author : 	Paul Robson (paul@robsons.org.uk)
+//		Purpose : 	Active compilation functions
+//		Date : 		2nd October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+//
+//		Mark something private
+//
+:private 128 or.type.id ; macro compile.only
+
+//
+//		Words to access h (address of current pointer) and here (value of current pointer)
+//
+:h a>r sys.info 6 + r>b ;
+:here h @ ;
+//
+//		Dictionary equivalents (address and value of current pointer)
+//
+:dict.h a>r sys.info 4 + r>b ;
+:dict.here dict.h @ ;
+//
+//		Variables
+//
+:variable 
+	ab>r 0 , 129 or.type.id r>ab  			// Sets type to '1' and private, compiles 0 to allow for value
+; macro compile.only
+
+//
+//		Variable mutators. A variable normally generates ex de,hl ; ld hl,xxxx ; these modifiers rewrite
+//		that to ex de,hl ; ld hl,(xxxx) and nop ; ld (xxxx),hl for read and write respectively.
+//
+:@@ 										// Variable reader.
+	ab>r 
+		here a>r 							// save here
+		-3 + h ! 42 c, 						// go back 3, and compile 42 $2A : LD HL,(xxxx) replacing LD HL,xxxx
+		r>a h !								// restore here
+	r>ab
+; macro compile.only 
+
+:!! 										// Variable writer
+	ab>r 
+		here a>r 							// save here
+		-4 + h ! 0 c, 34 c, 				// go back 4, and compile  00 (NOP) 42 ($2A : LD HL,(xxxx) 
+											// replacing EX DE,HL ; LD HL,xxxx
+		r>a h !								// restore here
+	r>ab
+; macro compile.only 
+
+//
+//		Loop locations for internal structures
+//
+:if.marker variable 						// Branch position for if marker.
+:begin.marker variable 						// Branch back for begin
+:for.marker variable						// Branch back for for
+
+//
+//		[-]If ... Then code 
+//
+:if 	{ld.a,h} i, {or.l} i, {jp.z,aaaa} i,
+		here if.marker !! 0 ,
+		; macro compile.only
+
+:-if 	{bit.7,h} i, {jp.z,aaaa} i,
+		here if.marker !! 0 ,
+		; macro compile.only
+
+:then	if.marker @@ here swap !
+		; macro compile.only
+
+//
+//		Begin ... [-]Until code
+//
+:begin 	here begin.marker !! 
+		; macro compile.only
+
+:until	{ld.a,h} i, {or.l} i, {jp.z,aaaa} i, begin.marker @@ ,
+		; macro compile.only
+
+:-until	{bit.7,h} i, {jp.z,aaaa} i, begin.marker @@ ,
+		; macro compile.only
+
+//
+//		For ... Next code
+//
+
+:for 	here for.marker !!	
+		{dec.hl} i, {push.hl} i,
+		; macro compile.only
+
+:next 	{pop.hl} i, {ld.a,h} i, {or.l} i, {jp.nz,aaaa} i, for.marker @@ ,
+		; macro compile.only
+
+:i 	{ex.de,hl} i, {pop.hl} i, {push.hl} i, 
+		; macro compile.only
+
+
+//
+//		Far page read/write. Set page with page.select and use page.@ etc. to access
+//		and update paged memory. 
+//
+:page.requested variable
+
+:page.select page.requested !! ;
+
+:page.c@  ab>r page.requested @@  page.switch r>ab c@ page.restore  ;
+:page.@   ab>r page.requested @@  page.switch r>ab  @ page.restore  ;
+
+:page.!  ab>r page.requested @@ page.switch r>ab ! page.restore  ;
+:page.c!  ab>r page.requested @@ page.switch r>ab c! page.restore  ;
+
+[crunch]

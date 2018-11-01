@@ -1,0 +1,7 @@
+TODO: 
+	forget
+	make 16/ a word not a macro
+	interactive environment complete
+	make . print in current base, lose con.print.hex etc and have .$ ?
+	block load/save code
+	paging

@@ -1,0 +1,75 @@
+(* ************************************************************************************************************
+(* ************************************************************************************************************
+(*
+(*		Name :		editor.m6
+(*		Purpose :	Text Editor
+(*		Date :		23rd August 2018
+(*		Author :	Paul Robson (paul@robsons.org.uk)
+(*
+(* ************************************************************************************************************
+(* ************************************************************************************************************
+
+import ..\library\console.m6
+
+: editor.position variable 						(* Position of start of edit *)
+: editor.size variable 							(* Size of edit area *)
+: editor.cursor variable 						(* Cursor position *)
+
+(* ************************************************************************************************************
+(*								Clear the editor buffer
+(* ************************************************************************************************************
+
+: editor.clear 
+	push.ab
+	buffer swap 								(* Length in A address in B *)
+	for
+		i c@ swap c! 1+ swap 	(* replace I c@ with swap $20 *)
+	next
+	pop.ab
+;
+
+(* ************************************************************************************************************
+(* 					Set up as <size in lines> <start in lines> editor.setup
+(* ************************************************************************************************************
+
+: editor.setup
+	push.ab
+		2* 2* 2* 2* 2* editor.position!
+		swap 2* 2* 2* 2* 2* editor.size!
+	pop.ab
+;
+
+(* 	
+(* 								Refresh editor display & position cursor
+(* 
+
+: editor.refresh private
+	editor.size@ 											(* Copy editor.size chars *)
+	for
+		buffer swap i swap + c@ a>r 						(* Put target address on stack, index in B)
+		swap editor.position@ + swap r>a swap 				(* Add position on screen and set up for *)
+		screen! 											(* Write to screen *)
+	next 	
+	editor.size@ 1- editor.cursor@ min 0 max editor.cursor!	(* Force cursor into range *)
+	editor.position@ editor.cursor@ + cursor!				(* Position cursor *)
+;
+
+: editor.key variable										(* Key pressed *)
+
+: editor.moveCheck private									(* If B is key pressed, move by A *)
+	a>r swap editor.key@ = 
+	if r>a a>r editor.cursor& +!  then
+	r>a ;
+
+: editor.edit
+	begin
+		editor.refresh 										(* Refresh *)
+		con.get editor.key! 								(* Get and save *)
+		20 -1 editor.moveCheck								(* Move cursor *)
+		21 32 editor.moveCheck
+		22 -32 editor.moveCheck
+		23 1 editor.moveCheck
+		editor.key@ 13 =									(* Keep going till CR *)
+	until
+;
+

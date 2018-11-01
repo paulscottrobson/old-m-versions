@@ -1,0 +1,107 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  check.integer
+;;      Type  word
+;
+;;$		See if string at A is a number, if so return A = 1, B =
+;;$ 	number, else return A = 0, B = undefined
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	bc
+		ld 		b,(hl)							; get character count into B
+		inc 	hl
+		ld  	c,10 							; C is current base.
+
+		ld 		a,b 							; if empty string , fail
+		or 		a
+		jr 		z,__ci_fail
+
+		xor 	a 								; clear sign fix up.
+		ld 		(__ci_isSigned),a
+
+		ld 		a,(hl)							; get first character
+		and 	$3F 							
+		cp 		'-'								; is it minus sign ?
+		jr		nz,__ci_notSigned
+		ld 		(__ci_isSigned),a				; if so, set signed flag to non zero value
+		inc 	hl
+		dec 	b
+		jr 		__ci__notHexadecimal
+
+__ci_notSigned:
+		cp 		'$'								; is it the hexadecimal marker ?
+		jr 		nz,__ci__notHexadecimal  
+		inc 	hl 								; skip over marker
+		dec 	b 								; decrement character count
+		ld 		c,16 							; and it is base 16 
+
+
+__ci__notHexadecimal:
+		ld 		de,$0000 						; zero the result
+__ci_loop:
+		call 	__ci_MulDEByC 					; multiply DE by C
+		ld 		a,(hl) 							; get the next character
+		inc 	hl 								; bump pointer
+		and 	$3F 							; put in 6 bit ASCII range.
+		jr 		z,__ci_fail 					; @ character is a fail.
+		cp 		58 								; > '9'
+		jr 		nc,__ci_fail 					; if so, fail.
+		sub 	48 								; subtract '0'
+		jr 		nc,__ci_okChar 					; if no borrow okay.
+		add		a,48+9  						; shift back so a.... is 10 ....
+__ci_okChar:
+		cp 		c 								; if greater than/equal to the base
+		jr 		nc,__ci_fail  					; bad character
+
+		add 	e 								; add that to DE
+		ld 		e,a
+		ld 		a,d
+		adc 	a,0
+		ld 		d,a
+
+		djnz 	__ci_loop 						; go back if not done all characters
+
+		ld 		a,(__ci_isSigned)				; signed ?
+		or 		a
+		jr 		z,__ci_isUnsigned
+
+		ld 		hl,0 							; negate result
+		xor 	a
+		sbc 	hl,de
+		ex 		de,hl
+
+__ci_isUnsigned:
+		ld 		hl,$FFFF						; return with -1 in A and answer in DE
+		pop 	bc
+		ret
+
+__ci_fail:
+		ld 		hl,$0000
+		pop 	bc
+		ret
+
+__ci_MulDEByC:
+		push 	bc
+		push 	hl
+		ld 		hl,$0000 						; result.
+__ciMultLoop:
+		srl 	c 								; shift C right, bit 0 in C
+		jr 		nc,__ciMultNoAdd
+		add 	hl,de 							; if bit set add DE
+__ciMultNoAdd:
+		ex 		de,hl 							; add DE to DE
+		add 	hl,hl
+		ex 		de,hl
+		ld 		a,c 							; keep going until C = 0
+		or 		a
+		jr 		nz,__ciMultLoop
+		ex 		de,hl 							; result in DE
+		pop 	hl 										
+		pop		bc
+		ret
+		
+__ci_isSigned:	
+		db 		0

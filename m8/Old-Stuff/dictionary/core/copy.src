@@ -1,0 +1,46 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  copy
+;;      Type  word
+;
+;;		$Copy bytes from B to A (copes with both directions).
+;;		Number to copy set by count!
+;
+; ****************************************************************
+; ****************************************************************
+
+	
+		push 	bc
+		push 	de
+		push 	hl
+
+		ld 		bc,(ActionCount)					; get count
+		ld 		a,b 								; exit now if count zero.
+		or 		c
+		jr 		z,__copyExit
+
+		xor 	a 									; find direction. 
+		sbc 	hl,de
+		ld 		a,h
+		add 	hl,de
+		bit 	7,a 								; if +ve use LDDR
+		jr 		z,__copy2
+
+		ex 		de,hl 								; LDIR etc do (DE) <- (HL)
+		ldir
+__copyExit:
+		pop 	hl
+		pop 	de
+		pop 	bc
+		ret
+
+__copy2:		
+;		db 		$DD,$01
+		add 	hl,bc 								; add length to HL,DE, swap as LDDR does (DE) <- (HL)
+		ex 		de,hl
+		add 	hl,bc
+		dec 	de 									; -1 to point to last byte
+		dec 	hl
+		lddr 
+		jr 		__copyExit

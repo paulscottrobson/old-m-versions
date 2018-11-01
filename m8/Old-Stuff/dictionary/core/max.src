@@ -1,0 +1,20 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  max
+;;      Type  word
+;
+;;$		Put the larger of A and B in A
+;
+; ****************************************************************
+; ****************************************************************
+
+		xor 	a									; clear carry
+		sbc 	hl,de 								; subtract for comparison
+		ld  	a,h 								; preserve MSB in A for sign bit
+		add 	hl,de 								; fix values back.
+		bit 	7,a 								; check bit 7
+		ret 	z 									; if unsigned HL is largest
+		ld 		h,d 								; otherwise DE is largest
+		ld 		l,e
+		ret

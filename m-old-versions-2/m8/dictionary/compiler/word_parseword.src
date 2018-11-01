@@ -1,0 +1,54 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      compiler.parseword
+;      @type      slow
+;      @desc      Get address of buffer with word to A, or zero.
+;
+; *******************************************************************************
+; *******************************************************************************
+
+ParseWord:
+		call 	__PWGet 						; get character
+		ld 		hl,$0000 						; set HL to $0000
+		or 		a 								; if zero, return with 0
+		ret 	z
+		cp 		' '								; is it space,
+		jr 		z,ParseWord 					; skip over spaces
+		push 	de 								; DE is the target buffer
+		ld 		de,ParseBuffer 					
+__PW_Copy:
+		cp 		'a'								; capitalise
+		jr 		c,__PW_NotLC
+		cp 		'z'+1
+		jr 		nc,__PW_NotLC
+		sub 	32
+__PW_NotLC:
+		ld 		(de),a 							; save character in DE
+		inc 	de 								; next space
+		call 	__PWGet 							; get next character
+		cp 		' '+1 							; keep going if >= ' '
+		jr 		nc,__PW_Copy 
+		xor 	a 								; and terminating zero
+		ld 		(de),a 
+		pop 	de 								; restore DE
+		ld 		hl,ParseBuffer 					; HL ^ ParseBuffer
+		ret 									; and exit
+;
+;		Get char into A, returns zero at end, replaces controls with space.
+;
+__PWGet:ld 		hl,(ParseAddress) 				; get pointer
+		ld 		a,(hl) 							; check at end of buffer
+		or 		a
+		ret 	z
+		inc 	hl 								; bump pointer and write back
+		ld 		(ParseAddress),hl 			
+		cp 		' '								; if >= ' ' return
+		ret 	nc
+		ld 		a,' '							; replace controls with space
+		ret
+;
+;		Buffer used for parsed result.
+;
+ParseBuffer:
+		ds 		64

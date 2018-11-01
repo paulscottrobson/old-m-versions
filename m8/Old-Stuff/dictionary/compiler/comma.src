@@ -1,0 +1,23 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  ,
+;;      Type  word
+;
+;;$		Compile word A into program free memory
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	de
+		push 	hl
+		ex 		de,hl 						; DE is word to store
+		ld 		hl,(SIAProgramPointer) 		; where to write it
+		ld 		(hl),e 						; write word out.		
+		inc 	hl
+		ld 		(hl),d
+		inc 	hl
+		ld 		(SIAProgramPointer),hl 		; save next free back out
+		pop 	hl
+		pop 	de
+		ret

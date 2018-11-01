@@ -1,0 +1,14 @@
+// 
+//		Dump testing program
+//
+
+uses console.m8
+import dump.m8
+
+: main 
+
+con.clear con.yellow 1223
+
+$0000 mem.dump con.green mem.dump
+
+debug halt ;

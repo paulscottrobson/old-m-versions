@@ -1,0 +1,48 @@
+// ************************************************************************************************
+// ************************************************************************************************
+//
+//		Name: 		debugloader.m8
+//		Purpose:	Loads coloured text into input buffer for debugging
+//		Date:		2nd September 2018
+//		Author:		Paul Robson (paul@robsons.org.uk)
+//
+// ************************************************************************************************
+// ************************************************************************************************
+
+variable dbl.colour
+variable dbl.pointer
+
+// ************************************************************************************************
+//								  Put pointer at the start
+// ************************************************************************************************
+
+: dbl.reset 
+	ab>r buffer dbl.pointer! r>ab
+;
+
+// ************************************************************************************************
+//									   Set current type
+// ************************************************************************************************
+
+: dbl.define ab>r 0 dbl.colour! r>ab ;						// 0 : Red 		Word Definition
+: dbl.comment ab>r $40 dbl.colour! r>ab ;					// 1 : White	Comments
+: dbl.compile ab>r $80 dbl.colour! r>ab ;					// 2 : Green 	Compile
+: dbl.immediate ab>r $C0 dbl.colour! r>ab ;					// 3 : Yellow 	Execute
+
+: dbl.write
+	ab>r
+		$3F and dbl.colour@ + dbl.pointer@ c!
+		1 dbl.pointer& +!
+	r>ab
+;
+
+: dbl.w
+	ab>r
+		a>b c@ if			
+			for
+				b>a 1+ a>b c@ dbl.write
+			next
+		then
+	32 dbl.write
+	r>ab
+;

@@ -1,0 +1,197 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      compiler.word
+;      @type      slow
+;      @desc      compile the code for the word pointed to by HL 
+;
+; *******************************************************************************
+; *******************************************************************************
+
+CompileOneWord:
+		push 	de
+		push	hl
+		push 	ix
+
+		push	hl 									; copy HL -> IX
+		pop 	ix
+		call 	SearchDictionary 					; look for it in the dictionary
+		ld 		a,h
+		or 		l
+		jr 		nz,__COWDirect
+
+		push 	ix 									; check to see if it is a constant
+		pop  	hl
+		call 	EvaluateConstant
+		jr 		nc,__CWConstant 					; if so , compile as that.
+
+
+		jp 		ERR_UnknownWord 					; give up.
+
+__COWDirect:
+		push 	hl 									; put the found dictionary entry in IX
+		pop 	ix
+		ld 		a,(ix+4) 							; get the ID bit
+		and 	$7F 								; ignore the private bit.
+		jr 		z,__CWStandard 						; if $00, a "normal" call
+		bit 	6,a 								; if $01-$3F a Macro expansion
+		jr 		z,__CWMacroExpansion
+		cp 		$40 								; $40 is a variable
+		jr 		z,__CWVariable
+		cp 		$41									; $41 is immediate.
+		jr 		z,__CWImmediate
+__CWExit:
+		pop 	ix
+		pop 	hl
+		pop 	de
+		ret
+
+; *******************************************************************************
+;
+;						Compile a word call (type 0)
+;
+; *******************************************************************************
+__CWStandard:
+		;
+		;	TODO: Handling required for target page and this page being different (top 16k only)
+		;
+		ld 		a,$CD 								; call instruction
+		call 	CompileByte 						; compile it.
+		ld 		l,(ix+1)							; target address in HL.
+		ld 		h,(ix+2)
+		call 	CompileWord
+		jr 		__CWExit
+
+; *******************************************************************************
+;
+;					Compile a macro expansion (types 1-63)
+;
+; *******************************************************************************
+
+__CWMacroExpansion:
+		ld 		b,a 								; byte count in B
+		ld 		l,(ix+1)							; macro data address in HL.
+		ld 		h,(ix+2)
+__CWMacroLoop:
+		ld 		a,(hl)								; get next byte
+		inc 	hl
+		call 	CompileByte 						; compile in-line
+		djnz 	__CWMacroLoop
+		jr 		__CWExit
+
+; *******************************************************************************
+;
+;							Compile a variable (64)
+;
+; *******************************************************************************
+		
+__CWVariable:
+		ld 		l,(ix+1) 							; var address in HL
+		ld 		h,(ix+2)
+
+; *******************************************************************************
+;
+;							  Compile a constant
+;
+; *******************************************************************************
+
+__CWConstant:
+		ld 		a,$EB								; ex de,hl
+		call 	CompileByte
+		ld 		a,$21 								; ld hl,nnnn
+		call 	CompileByte
+		call 	CompileWord
+		jr 		__CWExit
+
+; *******************************************************************************
+;
+;									Immediate (65)
+;
+; *******************************************************************************
+
+__CWImmediate:
+		ld 		l,(ix+1) 							; routine address in HL
+		ld 		h,(ix+2)
+		call 	__CWJPHL 							; call so can use RET to get back
+		jr 		__CWExit
+;
+__CWJPHL:
+		jp 		(hl)
+
+; *******************************************************************************
+;
+;				Evaluate constant at HL, return CS on error.
+;
+; *******************************************************************************
+
+EvaluateConstant:
+		push 	bc
+		push 	de
+		push 	ix
+		ld 		ix,$0000 							; IX is the total.
+		ld 		c,10 								; C is the current base.
+		ex 		de,hl 								; text pointer in HL.
+		ld 		a,(de)								; check for hexadecimal
+		cp 		'$'
+		jr 		nz,__ECNotHex
+		ld 		c,16 								; base 16
+		inc 	de
+__ECNotHex:
+
+__ECLoop:
+		push	de 									; save pointer 									
+
+		push 	ix 									; DE = IX
+		pop 	de
+		ld 		ix,$0000 							; IX = 0
+		ld 		b,c 								; B is the multiplier
+__ECMultiply:
+		bit 	0,b 								; if bit 0 set
+		jr 		z,__ECMult1
+		add 	ix,de
+__ECMult1:
+		ex 		de,hl 								; shift DE left
+		add 	hl,hl
+		ex 		de,hl
+		srl 	b 									; shift B right
+		ld 		a,b
+		or 		a
+		jr 		nz,__ECMultiply
+
+		pop 	de 									; restore pointer
+		db 		$DD,$01
+		ld 		a,(de) 								; next character
+		inc 	de
+		cp 		'0'
+		jr 		c,__ECExit
+		cp 		'9'+1 	
+		jr 		c,__ECDigit1
+		cp 		'A'
+		jr 		c,__ECExit
+		cp 		'F'+1
+		ccf
+		jr 		c,__ECExit
+		sub 	7
+__ECDigit1:
+		sub 	'0' 								; now its 0..15
+		cp 		c 									; CC if >= base
+		ccf 										; CS if >= base
+		jr 		c,__ECExit
+		push 	de 									; add it in.
+		ld 		e,a
+		ld 		d,0
+		add 	ix,de
+		pop 	de
+		ld 		a,(de)								; more to do.
+		or 		a
+		jr 		nz,__ECLoop
+
+__ECExitGood:
+		xor 	a 									; clear carry as okay.
+		push 	ix 									; IX -> HL
+		pop 	hl
+__ECExit:
+		pop 	ix 									; restore and exit.
+		pop 	de
+		pop 	bc
+		ret

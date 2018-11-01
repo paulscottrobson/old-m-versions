@@ -1,0 +1,23 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  macro.expand
+;;      Type  word
+;;		Option compileOnly
+;
+;;$		Internal, expand a macro
+;
+; ****************************************************************
+; ****************************************************************
+
+MacroExpand:
+		pop 	de
+		ld 		a,(de) 						; bytes to copy
+		ld 		b,a
+__mx_loop:
+		inc 	de
+		ld 		a,(de)
+		ld 		l,a
+		call 	CompileByte
+		djnz 	__mx_loop
+		ret

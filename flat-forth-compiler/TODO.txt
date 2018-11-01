@@ -1,0 +1,21 @@
+General
+=======
+
+Core Words 
+----------
+
+; ! @ +!  break c! c@ max min p! p@ halt
+
+Compiler Words
+--------------
+: !! @@ [-]if.. then begin .. [-]until 
+for .. next i private variable
+
+I/O Words
+---------
+(+ conio words)
+
+Write into dictionary page.
+Make ShowDictionary work.
+Compiler basics
+Fix Inkey to only scan one level of the keyboard.

@@ -1,0 +1,146 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :  console.m8 </span><br />
+<span style='color:#FFFFFF;'>author : paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose : console i/o </span><br />
+<span style='color:#FFFFFF;'>date :  16th september 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFF00;'>mwords </span><br />
+<br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>con.position </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>con.colour </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>con.base </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>number of lines in editing space/screen height </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.edit.size </span><span style='color:#00FF00;'>4 </span><span style='color:#00FF00;'>; </span><span style='color:#FFFFFF;'>number of editing lines </span><br />
+<span style='color:#FF0000;'>con.screen.height </span><span style='color:#00FF00;'>24 </span><span style='color:#00FF00;'>; </span><span style='color:#FFFFFF;'>total lines </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>clear screen, home cursor </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.clear </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>clr.screen </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>con.position! </span><span style='color:#00FF00;'>cursor! </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>emit raw (e.g. 2+6 bit) </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.rawemit </span><br />
+<span style='color:#00FF00;'>con.position@ </span><span style='color:#00FF00;'>screen! </span><br />
+<span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>con.position! </span><span style='color:#00FF00;'>cursor! </span><br />
+<span style='color:#00FF00;'>24 </span><span style='color:#00FF00;'>con.edit.size </span><span style='color:#00FF00;'>- </span><span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>2* </span><br />
+<span style='color:#00FF00;'>con.position@ </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>con.clear </span><span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>carriage return </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.cr </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>begin </span><br />
+<span style='color:#00FF00;'>$20 </span><span style='color:#00FF00;'>con.rawemit </span><br />
+<span style='color:#00FF00;'>con.position@ </span><span style='color:#00FF00;'>31 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>0= </span><br />
+<span style='color:#00FF00;'>until </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>emit space, spaces </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.space </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>$20 </span><span style='color:#00FF00;'>con.rawemit </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><span style='color:#FFFFFF;'>print out 1 space </span><br />
+<span style='color:#FF0000;'>con.spaces </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>for </span><span style='color:#00FF00;'>con.space </span><span style='color:#00FF00;'>next </span><span style='color:#00FF00;'>then </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><span style='color:#FFFFFF;'>print out a spaces </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>emit (7 bit ascii, supports cr) </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.emit </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#FFFFFF;'>save ab </span><br />
+<span style='color:#00FF00;'>$3f </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>con.colour@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>con.rawemit </span><span style='color:#FFFFFF;'>colour accordingly </span><br />
+<span style='color:#00FF00;'>r>ab </span><span style='color:#FFFFFF;'>restore ab </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>set colours by number or by name </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.setcolour </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>3 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>4* </span><span style='color:#00FF00;'>con.colour! </span><span style='color:#00FF00;'>r>ab </span><span style='color:#FFFFFF;'>store in upper 2 bits of low byte </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>con.red </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>con.setcolour </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><span style='color:#FFFFFF;'>do direct by colour </span><br />
+<span style='color:#FF0000;'>con.white </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>1 </span><span style='color:#00FF00;'>con.setcolour </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>con.green </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>2 </span><span style='color:#00FF00;'>con.setcolour </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>con.yellow </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>3 </span><span style='color:#00FF00;'>con.setcolour </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>print string </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.string </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#FFFFFF;'>save on stack </span><br />
+<span style='color:#00FF00;'>a>b </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>if </span><span style='color:#FFFFFF;'>addr in b read length, if non zero </span><br />
+<span style='color:#00FF00;'>for </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>a>b </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>con.emit </span><span style='color:#00FF00;'>next </span><span style='color:#FFFFFF;'>fetch and print that many times </span><br />
+<span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>r>ab </span><span style='color:#FFFFFF;'>restore </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>print integer </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.digit </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>15 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>10 </span><span style='color:#00FF00;'>>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>7 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>then </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>48 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>con.emit </span><span style='color:#FFFFFF;'>print digit in 0-9a-f fomat </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.integer </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>con.base@ </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>/ </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>con.print.integer </span><span style='color:#00FF00;'>then </span><span style='color:#FFFFFF;'>divide by base, recurse if nonzero </span><br />
+<span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>mod </span><span style='color:#00FF00;'>con.print.digit </span><span style='color:#FFFFFF;'>restore, modulus, print digit </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.hex </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>16 </span><span style='color:#00FF00;'>con.base! </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>con.print.integer </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>con.print.dec </span><span style='color:#FF0000;'>. </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>10 </span><span style='color:#00FF00;'>con.base! </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>con.print.integer </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>con.print.bin </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>2 </span><span style='color:#00FF00;'>con.base! </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>con.print.integer </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.byte </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>2/ </span><span style='color:#00FF00;'>2/ </span><span style='color:#00FF00;'>2/ </span><span style='color:#00FF00;'>2/ </span><span style='color:#00FF00;'>con.print.digit </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>con.print.digit </span><br />
+<span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>con.print.word </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>bswap </span><span style='color:#00FF00;'>con.print.byte </span><span style='color:#00FF00;'>bswap </span><span style='color:#00FF00;'>con.print.byte </span><br />
+<span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>get a keystroke </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>con.getkey </span><br />
+<span style='color:#00FF00;'>b>r </span><br />
+<span style='color:#00FF00;'>begin </span><span style='color:#00FF00;'>key@ </span><span style='color:#00FF00;'>0= </span><span style='color:#00FF00;'>until </span><br />
+<span style='color:#00FF00;'>begin </span><span style='color:#00FF00;'>key@ </span><span style='color:#00FF00;'>until </span><br />
+<span style='color:#00FF00;'>r>b </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

@@ -1,0 +1,72 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  find
+;;      Type  word
+;
+;;$		Look for the word in the dictionary at A (A points to a 
+;;$ 	length prefixed string) ; returns the address of the 
+;;$		dictionary item in A, or alternatively 0 if not found.
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	de 								; save B
+		ex 		de,hl 							; address of word in DE
+		ld 		hl,(SIADictionaryBase) 			; HL points to dictionary item
+__find_loop:
+		ld 		a,(hl) 							; get offset byte
+		or 		a
+		jr 		z,__find_fail 					; if zero, end of dictionary
+
+		call 	__find_check 					; compare this entry vs. DE one.
+		jr 		c,__find_succeed 				; carry set, exit with this HL value
+
+		ld 		c,(hl)							; BC = offset
+		ld 		b,0
+		add 	hl,bc 							; add and go round again
+		jr 		__find_loop
+
+__find_fail:
+		ld 		hl,$0000
+__find_succeed
+		pop 	de
+		ret
+;
+;		String at DE (len prefix). Directory record at HL. Return CS if the names match
+;		CC if they don't.
+;
+__find_check:
+		push 	de 								; save registers
+		push 	hl
+
+		inc 	hl 								; byte before first character
+		inc 	hl
+		inc 	hl
+		inc 	hl
+
+		ld 		a,(de)							; string length in B
+		ld 		b,a
+
+__find_check_loop:
+		inc 	de 								; go to next - first time round the first
+		inc 	hl
+		ld 		a,(de)	 						; compare (DE) to (HL)
+		xor 	(hl)
+		and 	$3F 							; only interested in bits 0..5
+		jr 		nz,__find_check_fail
+		djnz 	__find_check_loop 				; done all of them ?
+		bit 	7,(hl) 							; if bit 7 is set, matches
+		jr 		z,__find_check_fail
+
+		pop 	hl 								; restore registers, return with CS
+		pop 	de
+		scf
+		ret
+
+__find_check_fail:
+		pop 	hl 								; restore registers, return with CC
+		pop 	de
+		xor 	a
+		ret
+		

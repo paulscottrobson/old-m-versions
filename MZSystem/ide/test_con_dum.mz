@@ -1,0 +1,31 @@
+:xxxx 
+
+con.clear
+250 for con.rawemit next 
+con.cr 42 con.rawemit con.cr
+
+64 con.rawemit con.space con.rawemit 3 con.spaces 64 con.rawemit con.cr
+
+con.red 44 con.emit 
+con.white 45 con.emit
+con.green 46 con.emit
+con.yellow 47 con.emit
+con.cr
+
+"hello_world con.print.string con.cr
+
+32766 con.print.hex con.cr
+con.print.dec con.cr
+con.print.bin con.cr
+
+con.green 42 con.print.byte con.cr
+32765 con.print.word con.cr
+
+// con.clear 0 dump.mem
+
+// begin con.getkey con.print.dec con.space con.emit con.space con.cr 0 until
+
+debug halt ;
+
+[xxxx]
+	

@@ -1,0 +1,122 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name :		editor.mz
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Purpose :	Screen Editor
+//		Date :		4th October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+:edit.start.pos variable  									// start position in chars
+:edit.size variable 										// size in characters
+:edit.cursor variable										// cursor offset
+:edit.key variable 											// key press
+:edit.repaint.addr variable 								// repaint address
+
+// ************************************************************************************************
+//					Initialise Editor (B = Start Row, A = # Rows)
+// ************************************************************************************************
+
+:edit.setup
+	ab>r
+	16* 2*	edit.size !! swap 16* 2* edit.start.pos !!	
+	0 edit.cursor !!
+	r>ab
+;
+
+//
+//		Screen Refresh
+//
+:edit.refresh private
+	edit.size @@ for
+		edit.start.pos @@ + i b>r
+		edit.buffer + c@ swap r>a screen!
+	next
+	edit.size @@ 1- edit.cursor @@ min 0 max edit.cursor !!
+	edit.start.pos @@ + cursor!
+;
+
+//
+//		Handle cursor movement
+//
+:edit.move.cursor private
+	b>r edit.key @@ = if
+		r>a a>r edit.cursor @@ + edit.cursor !!
+	then r>b
+;
+
+//
+//		Handle carriage return
+//
+:edit.cr private
+	edit.cursor @@ 65504 and 32 + edit.cursor !!
+;
+
+//
+//		Put spaces at back and front of edit.buffer
+//
+:edit.space.surround private
+	32 edit.buffer 1- c! 
+	edit.buffer edit.buffer.size + 32 swap c!
+;
+//
+//		Handle backspace
+//
+:edit.backspace private
+	edit.cursor @@ if
+		1- edit.cursor !!
+		edit.buffer.size swap - count!
+		edit.space.surround edit.cursor @@ edit.buffer + a>b 1+ swap copy
+	then 
+;
+//
+//		Insert key
+//
+:edit.insert private
+	edit.buffer.size edit.cursor @@ - count!
+	edit.buffer edit.cursor @@ + a>b 1+ copy
+	1- a>r
+	c@ 192 and a>r edit.key @@ 63 and r>b +
+	r>b swap c!
+	edit.cursor @@ 1+ edit.cursor !! 
+;
+
+//
+//		Colour Repaint
+//
+:edit.repaint private
+	a>r edit.space.surround 
+	edit.buffer edit.cursor @@ + edit.repaint.addr !!
+	begin
+		edit.key @@ 3 and 16* 4* a>r
+		edit.repaint.addr @@ c@ 63 and r>b + edit.repaint.addr @@ c!
+		r>a a>r edit.repaint.addr @@ + edit.repaint.addr !!
+		c@ 63 and 32 =
+	until
+	r>a
+;
+
+//
+//		Main editor loop contents ; extracted as can exit on Escape (editing block) CR (editing line)
+//
+:edit.main private
+	edit.refresh
+	con.getkey edit.key !!
+	13 = if edit.cr then
+	-1 20 edit.move.cursor
+	32 21 edit.move.cursor
+	-32 22 edit.move.cursor
+	1 23 edit.move.cursor
+	edit.key @@ 4/ 4 = if -1 edit.repaint 1 edit.repaint then
+	edit.key @@ 8 = if edit.backspace then
+	edit.key @@ 32 >= if edit.insert then
+;
+
+// ************************************************************************************************
+//					Edit the edit.buffer, terminating on Enter or "Escape" (Shift+Enter)
+// ************************************************************************************************
+
+:edit.edit.block ab>r begin edit.main edit.key @@ 27 = until r>ab ;
+:edit.edit.line  ab>r begin edit.main edit.key @@ 13 = until r>ab ;

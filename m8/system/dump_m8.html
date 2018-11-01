@@ -1,0 +1,43 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :  dump.m8 </span><br />
+<span style='color:#FFFFFF;'>author : paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose : memory dump </span><br />
+<span style='color:#FFFFFF;'>date :  16th september 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFF00;'>mwords </span><br />
+<br />
+<span style='color:#FFFFFF;'>------------------------------------------------------------------------------------------------ </span><br />
+<span style='color:#FFFFFF;'>output a row of 8 bytes </span><br />
+<span style='color:#FFFFFF;'>------------------------------------------------------------------------------------------------ </span><br />
+<br />
+<span style='color:#FF0000;'>dump.bytes </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>for </span><br />
+<span style='color:#00FF00;'>con.space </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>con.print.byte </span><span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>swap </span><br />
+<span style='color:#00FF00;'>next </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>dump memory starting at a ; on exit a is the next block </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>dump.mem </span><br />
+<span style='color:#00FF00;'>b>r </span><br />
+<span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>for </span><br />
+<span style='color:#00FF00;'>b>r </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>con.print.word </span><span style='color:#00FF00;'>con.space </span><span style='color:#00FF00;'>58 </span><span style='color:#00FF00;'>con.emit </span><span style='color:#00FF00;'>r>a </span><br />
+<span style='color:#00FF00;'>dump.bytes </span><br />
+<span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>swap </span><br />
+<span style='color:#00FF00;'>con.cr </span><br />
+<span style='color:#00FF00;'>next </span><br />
+<span style='color:#00FF00;'>swap </span><br />
+<span style='color:#00FF00;'>r>b </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

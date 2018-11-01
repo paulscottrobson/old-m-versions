@@ -1,0 +1,29 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      system.dictionary.base
+;      @type      slow
+;      @desc      get base address (A) and last address (B) of dictionary
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		ld 	hl,DictionaryBase						; A = first byte
+		ld 	de,DictionaryEnd 						; B = furthest can go.
+		ret
+		
+; *******************************************************************************
+;
+;								Dictionary Format
+;
+; *******************************************************************************
+;
+;	+0		Offset to next entry (or zero), length of the word name + 5
+;	+1,2	Word Address
+;	+3 		Word Page Number
+;	+4 		Bit 7 		: 	immediate word
+;	 		Bit 6 		: 	compile only word (cannot run from a terminal)
+;			Bit 5 		: 	private flag.
+;			Bit 0..4	: 	length of word
+;	+5 		First character of name 7 bit ASCII
+; 	+6 		Second character (etc.)

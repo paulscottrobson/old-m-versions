@@ -1,0 +1,17 @@
+
+
+[macros]
+//
+// 		return from caller, compiles return and then return compiled manually
+//
+:; 		{ret} a, [{ret}] [a,] 	[words]
+
+[words]
+
+:test 1 2 3 debug $17A3 .h 
+35 cursor! ;
+
+[test]
+
+
+	

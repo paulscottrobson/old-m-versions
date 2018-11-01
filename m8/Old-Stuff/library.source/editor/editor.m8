@@ -1,0 +1,150 @@
+// ************************************************************************************************
+// ************************************************************************************************
+//
+//		Name: 		editor.m8
+//		Purpose:	Screen Editor
+//		Date:		2nd September 2018
+//		Author:		Paul Robson (paul@robsons.org.uk)
+//
+// ************************************************************************************************
+// ************************************************************************************************
+
+uses console.m8
+
+variable editor.pos 										// Character position of editor
+variable editor.size										// Size of editor space.
+variable editor.cursor 										// Cursor position
+variable editor.key 										// Key pressed
+
+// ************************************************************************************************
+//			Set up the editor, B is the Y position, A is the height in lines
+// ************************************************************************************************
+
+: editor.setup
+	ab>r
+		16* 2* editor.size!
+		swap 16* 2* editor.pos!
+	r>ab
+;
+
+// ************************************************************************************************
+//									Clear the editor buffer
+// ************************************************************************************************
+
+: editor.clear
+	ab>r
+	buffer swap count! 
+	buffer $20 swap fill
+//	buffer 0 swap copy
+	r>ab
+;
+
+// ------------------------------------------------------------------------------------------------
+//										Refresh the editor display
+// ------------------------------------------------------------------------------------------------
+
+: editor.refresh private
+	editor.size@ for											// Copy the screen
+		buffer i swap + c@ a>r 									// Read buffer item, keep I in B
+		swap editor.pos@ + r>b screen! 							// Calculate screen pos and write there
+	next
+	editor.cursor@ 0 max editor.size@ 1- min 					// Get cursor pos, make in range
+	editor.cursor! 
+	editor.pos@ + cursor!										// Add to editor position and put cursor there
+;
+
+// ------------------------------------------------------------------------------------------------
+//										Handle cursor movements
+// ------------------------------------------------------------------------------------------------
+
+: editor.move private b>r  editor.cursor& +! r>b ; 				// Move cursor by A protects B
+
+: editor.cursorMove private
+	editor.key@ 
+	20 = if -1 editor.move then
+	swap 21 = if 32 editor.move then
+	swap 22 = if -32 editor.move then
+	swap 23 = if 1 editor.move then
+;
+
+// ------------------------------------------------------------------------------------------------
+//								   Put space before and after buffer
+// ------------------------------------------------------------------------------------------------
+
+: editor.frameSpaces private
+	buffer 1- $20 swap c!
+	buffer + $20 swap c!
+;
+
+// ------------------------------------------------------------------------------------------------
+//											Handle backspace
+// ------------------------------------------------------------------------------------------------
+
+: editor.backspace private
+	editor.cursor@ if
+		editor.frameSpaces
+		-1 editor.move
+		buffer swap editor.cursor@ - count!
+		buffer editor.cursor@ + a>b 1+ swap copy
+	then	
+;
+
+// ------------------------------------------------------------------------------------------------
+//											  Insert a key
+// ------------------------------------------------------------------------------------------------
+
+: editor.insert private
+	buffer swap editor.cursor@ - count!					// Number to copy
+	buffer editor.cursor@ + a>b 1+ copy  				// Do copy
+	buffer editor.cursor@ + a>r 						// Address in buffer, save on stack
+	c@ $C0 and a>r 										// Colour of charact there, mask colour bits to stack
+	editor.key@  $3F and r>b + 			 				// get key as 6 bit, pop colour bits and add
+	swap r>a c! 										// unstack address and write back
+	1 editor.move 										// move right.
+;
+
+// ------------------------------------------------------------------------------------------------
+//										Recolour word
+// ------------------------------------------------------------------------------------------------
+
+variable editor.colourdirection 						// colour direction
+variable editor.newcolour  								// colour to recolour
+
+: editor.recolour1 										// recolour square at A
+	ab>r 
+		a>r c@ $3F and editor.newcolour@ + r>b swap c!
+	r>ab
+;
+
+: editor.recolour
+	editor.colourdirection! 							// save direction
+	editor.key@ 3 and 16* 4* editor.newcolour! 			// new colour
+	editor.frameSpaces									// spaces at beginning at end
+	buffer editor.cursor@ + swap 						// current position in B
+	begin
+		swap editor.recolour1 							// B->A and recolour
+		editor.colourdirection@ + 						// move pointer
+		a>r c@ $3F and $20 = r>b 						// see if lower 6 bits are space.
+	until
+;
+
+// ------------------------------------------------------------------------------------------------
+//											New line
+// ------------------------------------------------------------------------------------------------
+
+: editor.newline
+	editor.cursor@ 32 + $FFE0 and editor.cursor!
+;
+
+: editor.edit
+	begin
+		editor.refresh
+		con.getkey editor.key! 
+		editor.key@  8 = if editor.backspace then 		// backspace
+		editor.key@  13 = if editor.newline then 		// carriage return
+		editor.key@  32 >= if editor.insert then 		// normal characters
+		editor.key@ 4/ 4 = 								// recolour keys (Shift 1-4)
+		if -1 editor.recolour 1 editor.recolour then
+		editor.cursorMove 								// Cursor keys (Shift 5-8)
+	editor.key@  27 = until								// Until Break. 
+;

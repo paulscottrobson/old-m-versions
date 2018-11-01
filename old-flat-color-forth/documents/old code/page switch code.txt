@@ -1,0 +1,179 @@
+; ***************************************************************************************
+; ***************************************************************************************
+;
+;		Name : 		paging.asm
+;		Author :	Paul Robson (paul@robsons.org.uk)
+;		Date : 		23rd September 2018
+;		Purpose :	Paging access and execution code
+;
+; ***************************************************************************************
+; ***************************************************************************************
+
+; ***************************************************************************************
+;
+;		  This macro sets the pages mapped into $C000->$FFFF to pages A and A+1
+;
+;	This is the only code that does paging *except* FARCALL which has its own for speed.
+;	(the two must be compatible, obviously)
+;
+; ***************************************************************************************
+
+switchPageToA macro
+		nextreg 	$56,a
+		inc 		a
+		nextreg 	$57,a
+		dec 		a
+endm	
+
+; ***************************************************************************************
+;
+;					Switch page to A but update A' as well for running.
+;
+; ***************************************************************************************
+
+FARSwitchPageToRun:
+		push 		af
+		ex 			af,af' 							; initialise A' to the right value.
+		pop 		af 								; fall through to Switch Page.
+
+; ***************************************************************************************
+;
+;							Switch page to A, return old page in A
+;
+; ***************************************************************************************
+
+FARSwitchPage:
+		push 		bc
+		push 		af								; save switch page
+		ld 			bc,$243B 						; select register $56 to read current
+		ld 			a,$56
+		out 		(c),a
+		ld 			bc,$253B 							
+		in 			c,(c) 							; read register and save it in C.
+		pop 		af 								; get page to switch to
+		switchPageToA
+		ld 			a,c 							; get the old contents.
+		pop 		bc
+		ret
+
+; ***************************************************************************************
+;
+;									Restore page to A
+;
+; ***************************************************************************************
+
+FARRestorePage:
+		switchPageToA
+		ret
+
+
+; ***************************************************************************************
+;
+;	The farcall macro takes an address in BC and executes a Far Call to that address
+; 	in the given page.
+;
+;				On entry, BC is the routine to call. A' is the current page.
+;
+; ***************************************************************************************
+
+farcall: 	macro
+		nextreg 	$57,\0+1 						; set bank 7
+		ld 			a,\0 							; load A so we can copy into AF
+		jr 			FarCall_Common
+endm
+
+FarCall_Common:
+		nextreg 	$56,a							; set bank 6
+		ex 			af,af' 							; set A' to current and put old into A
+		push 		af 								; save the 'return' page on the stack
+		call 		FarCall_ExecuteBC 				; do a CALL (BC)
+		pop 		af 								; get the original page back
+		nextreg 	$56,a 							; reset bank 6
+		inc 		a
+		nextreg		$57,a 							; reset bank 7
+		dec 		a 								; this is the bank 6 value.
+		ex 			af,af' 							; which goes in A' resetting the current bank.
+		ret
+
+FarCall_ExecuteBC:
+		push 		bc 								; push BC on stack and return, does JP (BC)
+		ret
+
+; ***************************************************************************************
+;
+;					An array of farcall macros, one for each callable page.
+;
+; ***************************************************************************************
+
+FarCallTable: 										; table of farcall entries
+		farcall 	$24
+__FarCall26: 										; for testing and sizing.
+		farcall 	$26
+		farcall 	$28
+		farcall 	$2A
+		farcall 	$2C
+		farcall 	$2E
+		farcall 	$30
+		farcall 	$32
+		farcall 	$34
+		farcall 	$36
+		farcall 	$38
+		farcall 	$3A
+		farcall 	$3C
+
+; ***************************************************************************************
+;
+;							Compile a call to C:HL from page B
+;
+; ***************************************************************************************
+
+FARCallCreateCallCode:
+		push 	af 									; save registers
+		push 	bc
+		push 	de
+		push 	hl
+
+		ld 		a,b 								; are the source and target page the same
+		cp 		c
+		jr 		z,__FARCallSamePage 				; if so, just use a standard $CD call.
+
+		ld 		a,h 								; if target address is C000-FFFF
+		and 	$C0 
+		cp 		$C0
+		jr 		z,__FARCallDifferentPage 			; then it's on a different page.
+;
+;		Code where same page, or calling < $C000 which is unpaged
+;
+__FarCallSamePage:
+		ld 		a,$CD 								; on the same page, use $CD xx xx
+		call 	FMCompileByte
+		call 	FMCompileWord
+__FarCallCreateExit:
+		pop 	hl
+		pop 	de
+		pop 	bc
+		pop 	af
+		ret
+;
+;		Different page, calling $C000-$FFFF. Compile LD BC,<addr> ; CALL <FarCodeRoutine>
+;
+__FarCallDifferentPage:								; not on the same page.
+		ld 		a,$01 								; compile LD BC,<address>						
+		call 	FMCompileByte
+		call 	FMCompileWord
+		ld 		hl,FarCallTable 					; entry for page $24
+		ld 		de,__FarCall26-FarCallTable 		; size of one entry
+__FarCallCalculateTable:
+		ld 		a,c 								; reached $24 ?
+		cp 		$24
+		jr 		z,__FarCallCallTable 				; then HL points to the farcall table entry
+		dec 	c
+		dec 	c
+		add 	hl,de
+		jr 		__FarCallCalculateTable
+__FarCallCallTable:		
+		ld 		a,$CD 								; call the FarCall routine.
+		call 	FMCompileByte
+		call 	FMCompileWord
+		jr 		__FarCallCreateExit
+

@@ -1,0 +1,137 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name : 		atomic.mz
+//		Author : 	Paul Robson (paul@robsons.org.uk)
+//		Purpose : 	Low level atomic functions
+//		Date : 		30th September 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+//
+//		CSPECT breakpoint
+//
+:brk 	56577 i, ; macro compile.only
+
+//
+//		Integer addition
+//
+:+ 		{add.hl,de} i, ; macro
+
+//
+//		Integer subtraction
+//
+:- 		{push.de} i, {xor.a} i, {ex.de,hl} i, {sbc.hl,de} i, {pop.de} i, ; macro
+
+//
+//		Swap A & B
+//
+:swap 	{ex.de,hl} i, ; macro
+
+//
+//		Incrementers/Decrementers
+//
+:2+ 	{inc.hl} i,     macro
+:1+ 	{inc.hl} i, ;   macro
+:2- 	{dec.hl} i,     macro
+:1- 	{dec.hl} i, ;   macro
+//
+//		Scalar multiply and divide
+//
+:16* 	{add.hl,hl} i, macro
+:8* 	{add.hl,hl} i, macro
+:4* 	{add.hl,hl} i, macro
+:2* 	{add.hl,hl} i, ; macro
+:256* 	{ld.h,l} i, {ld.l,dd} i, 0 c, ; macro
+
+:4/ 	{sra.h} i, {rr.l} i, 	macro
+:2/ 	{sra.h} i, {rr.l} i, ; 	macro
+:16/ 	4/ 4/ ;
+
+//
+//		Register->Register
+//
+:a>b 	{ld.d,h} i, {ld.e,l} i, ; macro 
+:b>a 	{ld.h,d} i, {ld.l,e} i, ; macro
+
+//
+//		Register to/from stack
+//
+:a>r 	{push.hl} i, ; macro compile.only
+:b>r 	{push.de} i, ; macro compile.only
+:r>a 	{pop.hl} i, ; macro compile.only
+:r>b 	{pop.de} i, ; macro compile.only
+:ab>r 	{push.hl} i, {push.de} i, ; macro compile.only
+:r>ab 	{pop.de} i, {pop.hl} i, ; macro compile.only
+
+//
+//		Memory read/write indirect
+//
+:@		{ld.a,(hl)} i, {inc.hl} i, {ld.h,(hl)} i, {ld.l,a} i, ; macro
+:c@		{ld.l,(hl)} i, {ld.h,dd} i, 0 c, ; macro
+:! 		{ld.(hl),e} i, {inc.hl} i, {ld.(hl),d} i, {dec.hl} i, ; macro
+:c! 	{ld.(hl),e} i, ; 	macro
+
+//
+//		Input/Output to/from port
+//
+:port@ 	{ld.b,h} i, {ld.c,l} i, {in.l,(c)} i, {ld.h,dd} i, 0 c, ; macro
+:port! 	{ld.b,h} i, {ld.c,l} i, {out.(c),e} i, ; macro
+
+//
+//		Byte swap
+//
+:bswap	{ld.a,h} i, {ld.h,l} i, {ld.l,a} i, ; macro
+
+//
+//		Absolute value : Note : falls through to negate
+//
+:abs 	<bit.7,h> <ret.z>
+//
+//		Negate (2's complement) A
+//
+:0- 	<ld.a,h> <cpl> <ld.h,a> <ld.a,l> <cpl> <ld.l,a> <inc.hl> ;
+
+//
+//		Not (1's complement) A
+//
+:not 	<ld.a,h> <cpl> <ld.h,a> <ld.a,l> <cpl> <ld.l,a>  ;
+
+//
+//		Check equal zero.
+//
+:0= 	<ld.a,h> <or.l> <ld.hl,aaaa> [0] [,] <ret.nz> <dec.hl> ;
+
+//
+//		Check less zero.
+//
+:0< 	<bit.7,h> <ld.hl,aaaa> [0] [,] <ret.z> <dec.hl> ;
+
+//
+//		Equality testers
+//
+:= 	<xor.a> <sbc.hl,de> <dec.hl> <ret.z> <ld.hl,aaaa> [0] [,] ;
+:<>	<xor.a> <sbc.hl,de> <ret.z> <ld.hl,aaaa> [-1] [,] ;
+
+//
+//		Comparision testers
+//
+:>= <dec.hl>
+:> <xor.a> <sbc.hl,de> <ld.a,h> <ld.hl,aaaa> [-1] [,] <or.a> <ret.m> <inc.hl> ;
+
+:<  <dec.hl>
+:<= <xor.a> <sbc.hl,de> <ld.a,h> <ld.hl,aaaa> [-1] [,] <or.a> <ret.p> <inc.hl> ;
+
+//
+//		Binary operators
+//
+:and <ld.a,l> <and.e> <ld.l,a> <ld.a,h> <and.d> <ld.h,a> ;
+:or  <ld.a,l> <or.e> <ld.l,a> <ld.a,h> <or.d> <ld.h,a> ;
+:xor  <ld.a,l> <xor.e> <ld.l,a> <ld.a,h> <xor.d> <ld.h,a> ;
+
+//
+//		Minimum / Maximum values
+//
+:min <xor.a> <sbc.hl,de> <ld.a,h> <add.hl,de> <or.a> <ret.m> <ld.l,e> <ld.h,d> ;
+:max <xor.a> <sbc.hl,de> <ld.a,h> <add.hl,de> <or.a> <ret.p> <ld.l,e> <ld.h,d> ;

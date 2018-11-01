@@ -1,0 +1,16 @@
+(* *)
+(*		Simple test program. 	*)
+(* )
+
+list.on
+
+: a variable
+: b array 5
+
+import test2.m6
+
+: main breakpoint
+0 system.cursor!
+68 for redraw next
+debug halt ;
+list.off

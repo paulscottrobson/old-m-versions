@@ -1,0 +1,30 @@
+// ********************************************************************************************************
+//
+//									Paging testing program
+//
+// ********************************************************************************************************
+//
+// 							Don't use anything other than built in stuff
+//
+:here! <push.hl> sys.info 6 <add.hl,de> <pop.de> <ld.(hl),e> <inc.hl> <ld.(hl),d> ; macro
+:here.page! <push.hl> sys.info 8 <add.hl,de> <pop.de> <ld.(hl),e>  ; macro
+
+[49152] here! [44] here.page!
+
+:word2 42 .h ;
+
+[49152] here! [46] here.page!
+
+:word1 	word2 word2 ;
+
+[49152] here! [48] here.page!
+
+:xxxx 
+
+[56577] [i,] 
+
+word1 debug ;
+
+[xxxx]
+	
+	

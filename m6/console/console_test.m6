@@ -1,0 +1,25 @@
+
+(* ************************************************************************************************************ 
+(*	
+(*												Test Programs
+(*	
+(* ************************************************************************************************************
+
+import console.m6
+
+: star 42 con.emit 10 con.spaces 42 con.emit con.cr ;
+
+: main
+	con.clear
+	con.red star
+	con.white star
+	con.green star
+	con.yellow star
+	con.red "hello_world_!" con.print.string 13 con.emit 42 con.emit con.cr
+	con.yellow
+	$4 con.print.hex con.cr
+	$1C con.print.hex con.cr
+	$29 con.print.hex con.cr
+	$2A9 con.print.hex con.cr
+	$29 con.print.dec con.cr
+	debug halt ;

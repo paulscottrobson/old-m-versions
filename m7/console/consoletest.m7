@@ -1,0 +1,18 @@
+//
+//		Console test file.
+//
+
+import console.m7
+
+: main 
+con.clear
+42 con.emit 65 con.emit 97 con.emit 13 con.emit 33 con.emit
+0 con.colour 48 con.emit
+1 con.colour 49 con.emit
+2 con.colour 50 con.emit
+3 con.colour 51 con.emit con.cr
+con.green "Hello_world_!" con.print.string con.cr
+con.yellow
+14708 con.print.dec con.cr
+$A7F6 con.print.hex con.cr
+debug halt ;

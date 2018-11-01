@@ -1,0 +1,1330 @@
+              	; --------------------------------------
+              	; zasm: assemble "core.asm"
+              	; date: 2018-09-07 21:19:26
+              	; --------------------------------------
+
+
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		core.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	core assembly file
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	SplitPoint = $8000 									; where RAM is split. Can move
+              	BaseAddress = $5B00 								; build from here
+              	
+              	; ********************************************************************************************************
+              	;
+              	;												Boot code
+              	;
+              	; ********************************************************************************************************
+              	
+5B00:         			org 	BaseAddress
+5B00:         	ColdStart: 
+5B00: 31DE5F  			ld 		sp,stackTop 						; Initialise the stack
+5B03: 2AE05F  			ld 		hl,(SVRunAddress)					; what do we run ?
+5B06: E9      			jp 		(hl) 								; go there
+              	
+5B07:         	ErrorHandler:
+5B07: 3E3F    			ld 		a,'?'
+5B09:         	HaltCode:											; come here to stop the CPU
+5B09: 76      			halt
+5B0A: 18FD    			jr 		HaltCode
+              	
+5B0C:         	CompileScreenBlockCode:
+5B0C: 210040  			ld 		hl,$4000 							; compile code from here to here. Put at $4080
+5B0F: 11FF59  			ld 		de,$59FF 							; as SNASM grabs a few screen bytes
+5B12: CDE65C  			call 	CompileBlock
+5B15: 18F2    			jr 		HaltCode
+              	
+              	; ********************************************************************************************************
+              	;
+              	;						Functions where speed not particularly important
+              	;
+              	; ********************************************************************************************************
+              	
+              			include "support/hardware.asm"				; screen and keyboard
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		hardware.asm
+              	;		Purpose:	Hardware interface to Spectrum
+              	;		Date:		15th June 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              		
+0020:         	IOScreenWidth: equ 32 									; screen size
+0018:         	IOScreenHeight: equ 24
+              	
+              	; *********************************************************************************
+              	;
+              	;		Set the current display cursor position to the offset specified in
+              	;		the lower 10 bits of HL.
+              	;
+              	; *********************************************************************************
+              	
+5B17:         	IOSetCursor:
+5B17: F5      			push 	af									; save registers
+5B18: E5      			push 	hl
+5B19: 2ACB5B  			ld 		hl,(IOCursorPosition)				; remove old cursor
+5B1C: CBBE    			res 	7,(hl)
+5B1E: E1      			pop 	hl
+5B1F: E5      			push 	hl
+5B20: 7C      			ld 		a,h 								; convert new cursor to attr pos
+5B21: E603    			and 	03
+5B23: FE03    			cp 		3 									; cursor position out of range
+5B25: 2806    			jr 		z,__scexit							; don't update
+5B27: F658    			or 		$58
+5B29: 67      			ld 		h,a
+5B2A: 22CB5B  			ld 		(IOCursorPosition),hl
+5B2D:         	__scexit:		
+5B2D: 2ACB5B  			ld 		hl,(IOCursorPosition)				; show new cursor
+5B30: CBFE    			set 	7,(hl)		
+5B32: E1      	 		pop		hl
+5B33: F1      			pop 	af
+5B34: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;								Clear the screen
+              	;
+              	; *********************************************************************************
+              	
+5B35:         	IOClearScreen:
+5B35: F5      			push 	af 									; save registers
+5B36: E5      			push 	hl
+5B37: 210040  			ld 		hl,$4000 							; clear pixel memory
+5B3A: 3600    	__cs1:	ld 		(hl),0
+5B3C: 23      			inc 	hl
+5B3D: 7C      			ld 		a,h
+5B3E: FE58    			cp 		$58
+5B40: 20F8    			jr 		nz,__cs1
+5B42: 3647    	__cs2:	ld 		(hl),$47							; clear attribute memory
+5B44: 23      			inc 	hl
+5B45: 7C      			ld 		a,h
+5B46: FE5B    			cp 		$5B
+5B48: 20F8    			jr 		nz,__cs2		
+5B4A: 2ACB5B  			ld 		hl,(IOCursorPosition)				; reset cursor bit
+5B4D: CBFE    			set 	7,(hl)
+5B4F: AF      			xor 	a 									; border off
+5B50: D3FE    			out 	($FE),a
+5B52: E1      			pop 	hl 									; restore and exit.
+5B53: F1      			pop 	af
+5B54: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;	Write a character A on the screen at HL. HL is bits 0-9, A is a 2+6 bit
+              	;	colour / character.
+              	;
+              	; *********************************************************************************
+              	
+5B55:         	IOWriteCharacter:
+5B55: F5      			push 	af 									; save registers
+5B56: C5      			push 	bc
+5B57: D5      			push 	de
+5B58: E5      			push 	hl
+              	
+5B59: 4F      			ld 		c,a 								; save character in C
+              	
+5B5A: 7C      			ld 		a,h 								; check H in range 0-2
+5B5B: E603    			and 	3
+5B5D: FE03    			cp 		3
+5B5F: 2861    			jr 		z,__wcexit
+              	
+5B61: E5      			push 	hl 									; save screen address
+              	;
+              	;		update attribute
+              	;
+5B62: 7C      			ld 		a,h 								; convert to attribute position
+5B63: E603    			and 	3
+5B65: F658    			or 		$58
+5B67: 67      			ld 		h,a
+              	
+5B68: 79      			ld 		a,c 								; rotate left twice
+5B69: 07      			rlca
+5B6A: 07      			rlca
+5B6B: E603    			and 	3 									; now a value 0-3
+5B6D: C6C7    			add 	a,IOColours & 255 					; add __wc_colours, put in DE
+5B6F: 5F      			ld 		e,a
+5B70: 3E5B    			ld 		a,IOColours / 256
+5B72: CE00    			adc 	a,0
+5B74: 57      			ld 		d,a
+5B75: 1A      			ld 		a,(de)								; get colours.
+5B76: 77      			ld 		(hl),a
+              	;
+              	;		char# 0-63 to font address
+              	;
+5B77: 79      			ld 		a,c 								; A = char#
+5B78: E63F    			and 	$3F 								; bits 0-6 only
+5B7A: EE20    			xor 	$20									; make it 7 bit.
+5B7C: C620    			add 	a,$20		
+5B7E: FE41    			cp 		'A' 								; make it lower case
+5B80: 3806    			jr 		c,__wc2
+5B82: FE5B    			cp 		'Z'+1
+5B84: 3002    			jr 		nc,__wc2
+5B86: C620    			add 	a,$20
+5B88:         	__wc2:
+5B88: 6F      			ld 		l,a 								; put in HL
+5B89: 2600    			ld 		h,0
+5B8B: 29      			add 	hl,hl 								; x 8
+5B8C: 29      			add 	hl,hl
+5B8D: 29      			add 	hl,hl
+5B8E: 11003C  			ld 		de,$3C00 							; add $3C00
+5B91: 19      			add 	hl,de
+5B92: EB      			ex 		de,hl 								; put in DE (font address)
+              	;
+              	;		screen position 0-767 to screen address
+              	;
+5B93: E1      			pop 	hl 									; restore screen address
+5B94: 7C      			ld 		a,h 								; L contains Y5-Y3,X4-X0. Get H
+5B95: E603    			and 	3 									; lower 2 bits (Y7,Y6)
+5B97: 87      			add 	a,a 								; shift left three times
+5B98: 87      			add 	a,a
+5B99: 87      			add 	a,a
+5B9A: F640    			or 		$40 								; set bit 6, HL now points to VRAM.		
+5B9C: 67      			ld 		h,a 								; put it back in H.
+              	;
+              	;		copy font data to screen position.
+              	;
+              	;
+              	;		ld 		b,8 								; copy 8 characters
+              	
+5B9D: 1A      			ld 		a,(de)								; 0
+5B9E: 77      			ld 		(hl),a
+5B9F: 24      			inc 	h
+5BA0: 13      			inc 	de
+              	
+5BA1: 1A      			ld 		a,(de)								; 1
+5BA2: 77      			ld 		(hl),a
+5BA3: 24      			inc 	h
+5BA4: 13      			inc 	de
+              	
+5BA5: 1A      			ld 		a,(de)								; 2
+5BA6: 77      			ld 		(hl),a
+5BA7: 24      			inc 	h
+5BA8: 13      			inc 	de
+              	
+5BA9: 1A      			ld 		a,(de)								; 3
+5BAA: 77      			ld 		(hl),a
+5BAB: 24      			inc 	h
+5BAC: 13      			inc 	de
+              	
+5BAD: 1A      			ld 		a,(de)								; 4
+5BAE: 77      			ld 		(hl),a
+5BAF: 24      			inc 	h
+5BB0: 13      			inc 	de
+              	
+5BB1: 1A      			ld 		a,(de)								; 5
+5BB2: 77      			ld 		(hl),a
+5BB3: 24      			inc 	h
+5BB4: 13      			inc 	de
+              	
+5BB5: 1A      			ld 		a,(de)								; 6
+5BB6: 77      			ld 		(hl),a
+5BB7: 24      			inc 	h
+5BB8: 13      			inc 	de
+              	
+5BB9: 1A      			ld 		a,(de)								; 7
+5BBA: 77      			ld 		(hl),a
+5BBB: 24      			inc 	h
+5BBC: 13      			inc 	de
+              	
+5BBD: 2ACB5B  			ld 		hl,(IOCursorPosition)				; show cursor if we've just overwritten it
+5BC0: CBFE    			set 	7,(hl)
+              	
+5BC2:         	__wcexit:
+5BC2: E1      			pop 	hl 									; restore and exit
+5BC3: D1      			pop 	de
+5BC4: C1      			pop 	bc
+5BC5: F1      			pop 	af
+5BC6: C9      			ret
+              	
+              	
+              	;
+              	;		colour bit colours
+              	;
+5BC7:         	IOColours:
+5BC7: 42      			db 		$42 								; 00 (red)
+5BC8: 47      			db 		$47 								; 01 (white)
+5BC9: 44      			db 		$44 								; 10 (green)
+5BCA: 46      			db 		$46 								; 11 (yellow)
+              	
+5BCB:         	IOCursorPosition:
+5BCB: 0000    			dw 		0
+              	
+              	; *********************************************************************************
+              	;
+              	;					Print 2+6 at cursor position and bump it
+              	;
+              	; *********************************************************************************
+              			
+5BCD:         	IOPrintCharacter:
+5BCD: E5      			push 	hl
+5BCE: 2ACB5B  			ld 		hl,(IOCursorPosition)
+5BD1: CD555B  			call 	IOWriteCharacter
+5BD4: 23      			inc 	hl
+5BD5: CD175B  			call	IOSetCursor
+5BD8: E1      			pop 	hl
+5BD9: C9      			ret
+              			
+              	; *********************************************************************************
+              	;
+              	;			Scan the keyboard, return currently pressed key code in A
+              	;
+              	; *********************************************************************************
+              	
+5BDA:         	IOScanKeyboard:
+5BDA: C5      			push 	bc
+5BDB: D5      			push 	de
+5BDC: E5      			push 	hl
+              	
+5BDD: 21295C  			ld 		hl,__kr_no_shift_table 				; firstly identify shift state.
+              	
+5BE0: 3EFE    			ld 		a,$FE 								; check CAPS SHIFT (emulator : left shift)
+5BE2: DBFE    			in 		a,($FE)
+5BE4: CB47    			bit 	0,a
+5BE6: 2003    			jr 		nz,__kr1
+5BE8: 21795C  			ld 		hl,__kr_shift_table
+5BEB:         	__kr1:
+5BEB: 3E7F    			ld 		a,7Fh 								; check SYMBOL SHIFT (emulator : right shift)
+5BED: DBFE    			in 		a,($FE)
+5BEF: CB4F    			bit 	1,a
+5BF1: 2003    			jr 		nz,__kr2
+5BF3: 21515C  			ld 		hl,__kr_symbol_shift_table
+5BF6:         	__kr2:
+              	
+5BF6: 1EFE    			ld 		e,$FE 								; scan pattern.
+5BF8: 7B      	__kr3:	ld 		a,e 								; work out the mask, so we don't detect shift keys
+5BF9: 161E    			ld 		d,$1E 								; $FE row, don't check the least significant bit.
+5BFB: FEFE    			cp 		$FE
+5BFD: 2808    			jr 		z,___kr4
+5BFF: 161D    			ld 		d,$01D 								; $7F row, don't check the 2nd least significant bit
+5C01: FE7F    			cp 		$7F
+5C03: 2802    			jr 		z,___kr4
+5C05: 161F    			ld 		d,$01F 								; check all bits.
+5C07:         	___kr4:
+5C07: 7B      			ld 		a,e 								; scan the keyboard
+5C08: DBFE    			in 		a,($FE)
+5C0A: 2F      			cpl 										; make that active high.
+5C0B: A2      			and 	d  									; and with check value.
+5C0C: 2011    			jr 		nz,__kr_keypressed 					; exit loop if key pressed.
+              	
+5C0E: 23      			inc 	hl 									; next set of keyboard characters
+5C0F: 23      			inc 	hl
+5C10: 23      			inc 	hl
+5C11: 23      			inc 	hl
+5C12: 23      			inc 	hl
+              	
+5C13: 7B      			ld 		a,e 								; get pattern
+5C14: 87      			add 	a,a 								; shift left
+5C15: F601    			or 		1 									; set bit 1.
+5C17: 5F      			ld 		e,a
+              	
+5C18: FEFF    			cp 		$FF 								; finished when all 1's.
+5C1A: 20DC    			jr 		nz,__kr3 
+5C1C: AF      			xor 	a
+5C1D: 1806    			jr 		__kr_exit 							; no key found, return with zero.
+              	;
+5C1F:         	__kr_keypressed:
+5C1F: 23      			inc 	hl  								; shift right until carry set
+5C20: 1F      			rra
+5C21: 30FC    			jr 		nc,__kr_keypressed
+5C23: 2B      			dec 	hl 									; undo the last inc hl
+5C24: 7E      			ld 		a,(hl) 								; get the character number.
+5C25:         	__kr_exit:
+5C25: E1      			pop 	hl
+5C26: D1      			pop 	de
+5C27: C1      			pop 	bc
+5C28: C9      			ret
+              	
+              	; *********************************************************************************
+              	;	 						Keyboard Mapping Tables
+              	; *********************************************************************************
+              	;
+              	;	$FEFE-$7FFE scan, bit 0-4, active low
+              	;
+              	;	8:Backspace 13:Return 16:19 colours 0-3 20-23:Left Down Up Right 
+              	;	27:Break 32-95: Std ASCII
+              	;
+5C29:         	__kr_no_shift_table:
+5C29: 005A5843			db 		0,  'Z','X','C','V',			'A','S','D','F','G'
+5C2D: 56415344	
+5C31: 4647    	
+5C33: 51574552			db 		'Q','W','E','R','T',			'1','2','3','4','5'
+5C37: 54313233	
+5C3B: 3435    	
+5C3D: 30393837			db 		'0','9','8','7','6',			'P','O','I','U','Y'
+5C41: 36504F49	
+5C45: 5559    	
+5C47: 0D4C4B4A			db 		13, 'L','K','J','H',			' ', 0, 'M','N','B'
+5C4B: 4820004D	
+5C4F: 4E42    	
+              	
+5C51:         	__kr_symbol_shift_table:
+5C51: 003A003F			db 		 0, ':', 0,  '?','/',			'~','|','\','{','}'
+5C55: 2F7E7C5C	
+5C59: 7B7D    	
+5C5B: 0000003C			db 		 0,  0,  0  ,'<','>',			'!','@','#','$','%'
+5C5F: 3E214023	
+5C63: 2425    	
+5C65: 5F292827			db 		'_',')','(',"'",'&',			'"',';', 0, ']','['
+5C69: 26223B00	
+5C6D: 5D5B    	
+5C6F: 0D3D2B2D			db 		13, '=','+','-','^',			' ', 0, '.',',','*'
+5C73: 5E20002E	
+5C77: 2C2A    	
+              	
+5C79:         	__kr_shift_table:
+5C79: 003A003F			db 		0,  ':',0  ,'?','/',			'~','|','\','{','}'
+5C7D: 2F7E7C5C	
+5C81: 7B7D    	
+5C83: 0000003C			db 		0,  0,  0  ,'<','>',			16, 17, 18, 19, 20
+5C87: 3E101112	
+5C8B: 1314    	
+5C8D: 08291716			db 		8, ')',23,  22, 21,				'"',';', 0, ']','['
+5C91: 15223B00	
+5C95: 5D5B    	
+5C97: 1B3D2B2D			db 		27, '=','+','-','^',			' ', 0, '.',',','*'
+5C9B: 5E20002E	
+5C9F: 2C2A    	
+              	
+              			include "support/multiply.asm"				; 16 bit multiply
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		multiply.asm
+              	;		Purpose:	16 bit unsigned multiply
+              	;		Date:		15th August 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;								Does HL = HL * DE
+              	;
+              	; *********************************************************************************
+              	
+5CA1:         	Multiply16:
+5CA1: C5      			push 	bc
+5CA2: D5      			push 	de
+5CA3: 44      			ld 		b,h 							; get multipliers in DE/BC
+5CA4: 4D      			ld 		c,l
+5CA5: 210000  			ld 		hl,0 							; zero total
+5CA8:         	__Core__Mult_Loop:
+5CA8: CB41    			bit 	0,c 							; lsb of shifter is non-zero
+5CAA: 2801    			jr 		z,__Core__Mult_Shift
+5CAC: 19      			add 	hl,de 							; add adder to total
+5CAD:         	__Core__Mult_Shift:
+5CAD: CB38    			srl 	b 								; shift BC right.
+5CAF: CB19    			rr 		c
+5CB1: EB      			ex 		de,hl 							; shift DE left
+5CB2: 29      			add 	hl,hl
+5CB3: EB      			ex 		de,hl
+5CB4: 78      			ld 		a,b 							; loop back if BC is nonzero
+5CB5: B1      			or 		c
+5CB6: 20F0    			jr 		nz,__Core__Mult_Loop
+5CB8: D1      			pop 	de
+5CB9: C1      			pop 	bc
+5CBA: C9      			ret
+              	
+              			
+              			include "support/divide.asm" 				; 16 bit divide
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		divide.asm
+              	;		Purpose:	16 bit unsigned divide
+              	;		Date:		15th August 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;			Calculates DE / HL. On exit DE = result, HL = remainder
+              	;
+              	; *********************************************************************************
+              	
+5CBB:         	DivideMod16:
+              	
+5CBB: C5      		push 	bc
+5CBC: 42      		ld 		b,d 				; DE 
+5CBD: 4B      		ld 		c,e
+5CBE: EB      		ex 		de,hl
+5CBF: 210000  		ld 		hl,0
+5CC2: 78      		ld 		a,b
+5CC3: 0608    		ld 		b,8
+5CC5:         	Div16_Loop1:
+5CC5: 17      		rla
+5CC6: ED6A    		adc 	hl,hl
+5CC8: ED52    		sbc 	hl,de
+5CCA: 3001    		jr 		nc,Div16_NoAdd1
+5CCC: 19      		add 	hl,de
+5CCD:         	Div16_NoAdd1:
+5CCD: 10F6    		djnz 	Div16_Loop1
+5CCF: 17      		rla
+5CD0: 2F      		cpl
+5CD1: 47      		ld 		b,a
+5CD2: 79      		ld 		a,c
+5CD3: 48      		ld 		c,b
+5CD4: 0608    		ld 		b,8
+5CD6:         	Div16_Loop2:
+5CD6: 17      		rla
+5CD7: ED6A    		adc 	hl,hl
+5CD9: ED52    		sbc 	hl,de
+5CDB: 3001    		jr 		nc,Div16_NoAdd2
+5CDD: 19      		add 	hl,de
+5CDE:         	Div16_NoAdd2:
+5CDE: 10F6    		djnz 	Div16_Loop2
+5CE0: 17      		rla
+5CE1: 2F      		cpl
+5CE2: 51      		ld 		d,c
+5CE3: 5F      		ld 		e,a
+5CE4: C1      		pop 	bc
+5CE5: C9      		ret
+              		
+              		
+              			include "compiler/compiler.asm" 			; base compiler code
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		compiler.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	core assembly file
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	
+              	; ********************************************************************************************************
+              	;									Compile Block from HL to DE
+              	; ********************************************************************************************************
+              	
+5CE6:         	CompileBlock:
+5CE6: 226E5D  			ld 		(bufferPtr),hl 						; save start and end
+5CE9: ED53705D			ld 		(bufferEnd),de 
+              	;
+              	;		Main compilation loop.
+              	;
+5CED:         	cbNextWord:
+5CED: CD075D  			call 	cbGetWord 							; extract a word.
+5CF0: D8      			ret 	c 									; exit if completed.
+              	
+5CF1: 23      			inc 	hl 									; get the first character
+5CF2: 7E      			ld 		a,(hl) 								; so we can type the word
+5CF3: 2B      			dec 	hl
+              	
+5CF4: DD01    			db 		$DD,$01
+              	
+5CF6: E6C0    			and 	$C0 								; isolate the colour bits
+5CF8: CC725D  			call 	z,DefineNewWord						; $00 define a new word.
+              	
+              														; $40 is an ignored comment
+5CFB: FE80    			cp 		$80 		
+5CFD: CCEA5E  			call 	z,CompileOneWord					; $80 is a compiler word
+              	
+5D00: FEC0    			cp 		$C0 								; $C0 is an execute word
+5D02: CC255F  			call 	z,ExecuteOneWord
+              			
+5D05: 18E6    			jr 		cbNextWord
+              			include	"compiler/extract.asm"				; extract words
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		extract.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	extract a word.
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ********************************************************************************************************
+              	;								Extract a word, CS if none, CC if found
+              	;					HL points to string preceded by length, and terminated by $20
+              	; ********************************************************************************************************
+              	
+5D07:         	cbGetWord:
+5D07: CD2E5D  			call 	cbGetChar 							; get character
+5D0A: D8      			ret 	c 									; end of buffer, return.
+5D0B: 4F      			ld 		c,a 								; put in C
+5D0C: E63F    			and 	$3F 								; check if space
+5D0E: FE20    			cp 		$20
+5D10: 28F5    			jr 		z,cbGetWord 						; if space, keep getting, if not first char in C
+              	
+5D12: 0600    			ld 		b,0 								; B is count of characters
+5D14: 214C5D  			ld 		hl,wordBuffer 						; HL is where it goes
+5D17:         	__cbGWNext:
+5D17: 04      			inc 	b 									; inc count and pointer
+5D18: 23      			inc 	hl
+5D19: 71      			ld 		(hl),c 								; save word
+5D1A: CD2E5D  			call 	cbGetChar 							; get the next character
+5D1D: 3807    			jr 		c,__cbGWExit 						; if end of buffer, word fetch complete
+5D1F: 4F      			ld 		c,a 								; save in C
+5D20: E63F    			and 	$3F 								; go back if not space to get whole word
+5D22: FE20    			cp 		$20
+5D24: 20F1    			jr 		nz,__cbGWNext
+5D26:         	__cbGWExit:
+5D26: 23      			inc 	hl 									; add terminating $20
+5D27: 3620    			ld 		(hl),$20
+5D29: 214C5D  			ld 		hl,wordBuffer 						; HL points to word buffer
+5D2C: 70      			ld 		(hl),b 								; write length in there
+5D2D: C9      			ret
+              	
+              	;
+              	;		Get character from buffer to A, CS if reached the buffer end.
+              	;
+5D2E:         	cbGetChar:
+5D2E: D5      			push 	de
+5D2F: E5      			push 	hl
+5D30: 2A6E5D  			ld 		hl,(bufferPtr) 						; get current and end
+5D33: ED5B705D			ld 		de,(bufferEnd)
+              	
+5D37: 7D      			ld 		a,l 								; check reached the end
+5D38: BB      			cp 		e		
+5D39: 2008    			jr 		nz,__cbCharAvailable
+5D3B: 7C      			ld 		a,h
+5D3C: BA      			cp 		d
+5D3D: 2004    			jr 		nz,__cbCharAvailable
+              	
+5D3F: 37      			scf 										; if no characters, return with CS
+5D40: E1      			pop 	hl
+5D41: D1      			pop 	de
+5D42: C9      			ret
+              	
+5D43:         	__cbCharAvailable:
+5D43: AF      			xor 	a 									; clear carry flag.
+5D44: 7E      			ld 		a,(hl)								; get character
+5D45: 23      			inc 	hl 									; bump and write pointer
+5D46: 226E5D  			ld 		(bufferPtr),hl
+5D49: E1      			pop 	hl
+5D4A: D1      			pop 	de
+5D4B: C9      			ret
+              	
+5D4C:         	wordBuffer:											; buffer for read word
+5D4C: FFFFFFFF			ds 		34
+5D50: FF...   	
+5D6E:         	bufferPtr: 											; pointer into buffer being scanned
+5D6E: 0000    			dw 		0
+5D70:         	bufferEnd: 											; end of buffer being scanned
+5D70: 0000    			dw 		0
+              	
+              			include "compiler/define.asm"				; add a new definition to the dictionary
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		define.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Define new word
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ********************************************************************************************************
+              	;
+              	;						Define a new word (HL:Name) in the currently selected dictionary
+              	;
+              	; ********************************************************************************************************
+              	
+5D72:         	DefineNewWord:
+              			
+5D72: F5      			push 	af
+5D73: C5      			push 	bc
+5D74: D5      			push 	de
+5D75: E5      			push 	hl
+5D76: DDE5    			push 	ix
+              	
+5D78: DD2AE45F			ld 		ix,(SVNextDictionaryFree)  			; the next free space.
+5D7C: DD22BA5D			ld 		(LastEntry),ix 						; save last definition made.
+              	
+5D80: 7E      			ld 		a,(hl) 								; get length of word
+5D81: C605    			add 	a,5 								; add 5 for data entries, gives total dictionary entry size
+5D83: DD7700  			ld 		(ix+0),a 							; this is the offset
+              	
+5D86: ED5BE65F			ld 		de,(SVNextProgramFree) 				; set the code address 
+5D8A: DD7301  			ld 		(ix+1),e
+5D8D: DD7202  			ld 		(ix+2),d
+5D90: 3AE85F  			ld 		a,(SVNextProgramFreePage) 			; and the page address
+5D93: DD7703  			ld 		(ix+3),a
+5D96: 7E      			ld 		a,(hl) 								; get length into bits 0..5
+5D97: DD7704  			ld 		(ix+4),a
+              	
+5D9A: 110500  			ld 		de,5 								; advance IX to the first character slot.
+5D9D: DD19    			add 	ix,de
+              	
+5D9F: 46      			ld 		b,(hl) 								; bytes to copy
+5DA0:         	__dnwCopyName:
+5DA0: 23      			inc 	hl 									; get next character in name
+5DA1: 7E      			ld 		a,(hl)
+5DA2: E63F    			and 	$3F									; make a 6 bit value
+5DA4: DD7700  			ld 		(ix+0),a 							; write it out.
+5DA7: DD23    			inc 	ix
+5DA9: 10F5    			djnz 	__dnwCopyName 						; copy the whole name
+              	
+5DAB: DD22E45F			ld 		(SVNextDictionaryFree),ix 			; set next dictionary free value
+5DAF: DD360000			ld 		(ix + 0),0 							; add the trailing zero marking dictionary end.
+              	
+5DB3: DDE1    			pop 	ix 									; and return.
+5DB5: E1      			pop 	hl
+5DB6: D1      			pop 	de
+5DB7: C1      			pop 	bc
+5DB8: F1      			pop 	af
+5DB9: C9      			ret
+              	
+5DBA:         	LastEntry: 											; last defined word.
+5DBA: 0000    			dw 		0
+              			
+              	; ********************************************************************************************************
+              	;
+              	;						Or Last Entry info/length byte with A
+              	;
+              	; ********************************************************************************************************
+              	
+5DBC:         	SetLastEntryBit:
+5DBC: F5      			push 	af
+5DBD: C5      			push 	bc
+5DBE: E5      			push 	hl
+5DBF: 47      			ld 		b,a 								; save bit in B
+5DC0: 2ABA5D  			ld 		hl,(LastEntry) 						; get last entry
+5DC3: 7C      			ld 		a,h 								; check one has been defined
+5DC4: B5      			or 		l
+5DC5: 2807    			jr 		z,__SLENotSet
+              	
+5DC7: 23      			inc 	hl 									; if so point to info byte
+5DC8: 23      			inc 	hl
+5DC9: 23      			inc 	hl
+5DCA: 23      			inc 	hl
+5DCB: 7E      			ld 		a,(hl) 								; and set that bit
+5DCC: B0      			or 		b
+5DCD: 77      			ld 		(hl),a
+              			
+5DCE:         	__SLENotSet:
+5DCE: E1      			pop 	hl
+5DCF: C1      			pop 	bc
+5DD0: F1      			pop 	af
+5DD1: C9      			ret
+              			include "compiler/convert.asm"				; convert word to integer constant
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		convert.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Convert word at HL (length prefix) to constant in DE, CS if can't convert
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+5DD2:         	ConvertWordToInteger:
+5DD2: F5      			push 	af
+5DD3: C5      			push 	bc
+5DD4: E5      			push 	hl
+              	
+5DD5: E5      			push 	hl 									; add $20 to end of the string
+5DD6: 4E      			ld 		c,(hl)
+5DD7: 0600    			ld 		b,0
+5DD9: 09      			add 	hl,bc
+5DDA: 23      			inc 	hl
+5DDB: 3620    			ld 		(hl),$20
+5DDD: E1      			pop 	hl
+5DDE: 23      			inc 	hl 									; skip over length
+              	
+5DDF: 010A00  			ld 		bc,10 								; B (sign) = 0, C (base) = 10
+              	
+5DE2: 7E      			ld 		a,(hl)								; check for leading '-'
+5DE3: E63F    			and 	$3F
+5DE5: FE2D    			cp 		'-'
+5DE7: 2002    			jr 		nz,__cwiNotSigned
+5DE9: 04      			inc 	b 									; set sign flag
+5DEA: 23      			inc 	hl 									; skip over 
+5DEB:         	__cwiNotSigned:
+5DEB: 7E      			ld 		a,(hl) 								; check for '$'
+5DEC: E63F    			and 	$3F
+5DEE: FE24    			cp 		'$'
+5DF0: 2003    			jr 		nz,__cwiNotHexadecimal
+5DF2: 0E10    			ld 		c,16 								; set to base 16
+5DF4: 23      			inc 	hl 									; skip over 
+5DF5:         	__cwiNotHexadecimal:
+              	
+5DF5: 110000  			ld 		de,0 								; zero result.
+              	
+5DF8: 7E      			ld 		a,(hl) 								; is there anything at all ?
+5DF9: E63F    			and 	$3F
+5DFB: FE20    			cp 		$20 
+5DFD: 2834    			jr 		z,__cwiFail 						; if not, fail
+              	
+5DFF:         	__cwiConvertLoop:
+5DFF: 7E      			ld 		a,(hl) 								; get the next character
+5E00: E63F    			and 	$3F
+5E02: 282F    			jr 		z,__cwiFail 						; if 0 (@) found, then fail automatically
+5E04: FE20    			cp 		$20 								; if space, then we've reached the end.
+5E06: 281B    			jr 		z,__cwiSucceed 						; so return with CC.
+              	
+5E08: F5      			push 	af
+5E09: CD3B5E  			call 	__cwiMultiplyDEByC 					; multiply current by base
+5E0C: F1      			pop 	af
+              	
+5E0D: FE3A    			cp 		'9'+1 								; > '9' ?
+5E0F: 3022    			jr 		nc,__cwiFail
+5E11: D630    			sub 	'0' 								; if >= '0' 
+5E13: 3002    			jr 		nc,__cwiFound  						; it's a legitimate value.
+5E15: C639    			add		'0'+9 								; convert to a 10+ value
+5E17:         	__cwiFound:
+5E17: B9      			cp 		c 									; is it >= the base ?
+5E18: 3019    			jr 		nc,__cwiFail 						; then fail
+              	
+5E1A: 83      			add 	a,e 								; add this to DE
+5E1B: 5F      			ld 		e,a
+5E1C: 7A      			ld 		a,d
+5E1D: CE00    			adc 	a,0
+5E1F: 57      			ld 		d,a
+              	
+5E20: 23      			inc 	hl 									; bump pointer
+5E21: 18DC    			jr 		__cwiConvertLoop 					; do the next
+              	
+5E23:         	__cwiSucceed:
+5E23: 78      			ld 		a,b 								; was it signed ?
+5E24: B7      			or 		a
+5E25: 2807    			jr 		z,__cwiNoSign
+5E27: 210000  			ld 		hl,0 								; negate it.
+5E2A: AF      			xor 	a
+5E2B: ED52    			sbc 	hl,de
+5E2D: EB      			ex 		de,hl
+5E2E:         	__cwiNoSign:
+5E2E: E1      			pop 	hl
+5E2F: C1      			pop 	bc
+5E30: F1      			pop 	af
+5E31: A7      			and 	a 									; clear carry
+5E32: C9      			ret
+              	
+5E33:         	__cwiFail:											; exit with carry flag set.
+5E33: 11FFFF  			ld 		de,$FFFF
+5E36: E1      			pop 	hl
+5E37: C1      			pop 	bc
+5E38: F1      			pop 	af
+5E39: 37      			scf 				
+5E3A: C9      			ret
+              	
+5E3B:         	__cwiMultiplyDEByC:
+5E3B: C5      			push 	bc
+5E3C: E5      			push 	hl
+5E3D: 210000  			ld 		hl,$0000 							; result
+5E40:         	__cwiMulLoop:
+5E40: CB41    			bit 	0,c
+5E42: 2801    			jr 		z,__cwiMulNotAdd
+5E44: 19      			add 	hl,de
+5E45:         	__cwiMulNotAdd:
+5E45: CB39    			srl 	c
+5E47: EB      			ex 		de,hl
+5E48: 29      			add 	hl,hl
+5E49: EB      			ex 		de,hl
+5E4A: 79      			ld 		a,c
+5E4B: B7      			or 		a
+5E4C: 20F2    			jr 		nz,__cwiMulLoop
+5E4E: EB      			ex 		de,hl
+5E4F: E1      			pop 	hl
+5E50: C1      			pop 	bc
+5E51: C9      			ret
+              			include "compiler/access.asm"				; paging dependent code generation
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		access.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Compile bytes and words, compile call (no use of paging)
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ********************************************************************************************************
+              	;
+              	;										Compile byte in A
+              	;
+              	; ********************************************************************************************************
+              	
+5E52:         	CompileByte:
+5E52: F5      			push 	af
+5E53: E5      			push 	hl
+5E54: 2AE65F  			ld 		hl,(SVNextProgramFree)
+5E57: 77      			ld 		(hl),a
+5E58: 23      			inc 	hl
+5E59: 22E65F  			ld 		(SVNextProgramFree),hl
+5E5C: E1      			pop 	hl
+5E5D: F1      			pop 	af
+5E5E: C9      			ret
+              	
+              	; ********************************************************************************************************
+              	;
+              	;										Compile word in HL
+              	;
+              	; ********************************************************************************************************
+              	
+5E5F:         	CompileWord:
+5E5F: F5      			push 	af
+5E60: 7D      			ld 		a,l
+5E61: CD525E  			call 	CompileByte
+5E64: 7C      			ld 		a,h
+5E65: CD525E  			call 	CompileByte
+5E68: F1      			pop 	af
+5E69: C9      			ret
+              	
+              	; ********************************************************************************************************
+              	;
+              	;										Compile call to AHL
+              	;
+              	; ********************************************************************************************************
+              	
+5E6A:         	CompileCall:
+5E6A: F5      			push 	af
+5E6B: 3ECD    			ld 		a,$CD 
+5E6D: CD525E  			call 	CompileByte
+5E70: CD5F5E  			call 	CompileWord
+5E73: F1      			pop 	af
+5E74: C9      			ret
+              	
+              	; ********************************************************************************************************
+              	;
+              	;										Execute word at HLA
+              	;
+              	; ********************************************************************************************************
+              	
+5E75:         	ExecuteHLAWord:
+5E75: E5      			push 	hl 									; address in IX
+5E76: DDE1    			pop 	ix
+5E78: 2A945E  			ld 		hl,(AWork) 							; load in registers
+5E7B: ED5B965E			ld 		de,(BWork)
+5E7F: ED4B985E			ld 		bc,(CWork)
+5E83: CD925E  			call 	__XHLAWord 							; do it
+5E86: ED43985E			ld 		(CWork),bc 							; write out registers
+5E8A: ED53965E			ld 		(BWork),de
+5E8E: 22945E  			ld 		(AWork),hl
+5E91: C9      			ret 										; and return
+              	
+5E92:         	__XHLAWord:
+5E92: DDE9    			jp 		(ix)
+              			
+5E94:         	AWork:												; values of ABC
+5E94: 0000    		dw 		0
+5E96:         	BWork:
+5E96: 0000    		dw 		0
+5E98:         	CWork:
+5E98: 0000    		dw 		0
+              			include "compiler/find.asm"					; search dictionary code.
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		find.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Find a word in the dictionary.
+              	;		Date : 		6th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ********************************************************************************************************
+              	;
+              	;				Find word in dictionary. A = 0, find anything, A = 1, find executables only.
+              	;				Return HL = address, CS if not found.
+              	;
+              	; ********************************************************************************************************
+              	
+5E9A:         	FindWord:
+5E9A: F5      			push 	af
+5E9B: C5      			push 	bc
+5E9C: D5      			push 	de
+5E9D: DDE5    			push 	ix
+              	
+5E9F: DD2AE25F			ld 		ix,(SVDictionaryBase) 							; we use IX to point to dictionary.
+5EA3: 4F      			ld 		c,a 											; save test flag in C
+              	;
+              	;		Check next word in dictionary
+              	;
+5EA4:         	__FW_Loop:
+5EA4: DD7E00  			ld 		a,(ix+0)										; get offset to next
+5EA7: B7      			or 		a 
+5EA8: 2839    			jr 		z,__FW_Fail 									; if zero, we've reached the end so give up.
+              	;
+              	;		Check if we want executables only
+              	;
+5EAA: 79      			ld 		a,c 											; are we checking for executables only.
+5EAB: FE01    			cp 		1 
+5EAD: 2006    			jr 		nz,__FW_NotExecutablesOnly
+5EAF: DDCB047E			bit 	7,(ix+4) 										; if macro bit is set, don't check this one
+5EB3: 2017    			jr 		nz,__FW_NextWord
+5EB5:         	__FW_NotExecutablesOnly:
+              	;
+              	;		Compare the string at IX+4 and HL to see if they are the same. The dictionary
+              	; 		contains a length prefixed string, except bits 6 and 7 are used for information.
+              	;
+5EB5: DDE5    			push 	ix 												; save IX+HL, we're going to compare strings
+5EB7: E5      			push 	hl
+5EB8: 46      			ld 		b,(hl)											; number to compare in B.
+5EB9: 04      			inc 	b 												; compare one more, comparing lengths as well
+              	
+5EBA:         	__FW_CompareLoop:
+5EBA: DD7E04  			ld   	a,(ix+4)										; get first character/length
+5EBD: AE      			xor 	(hl) 											; use XOR to compare so we can mask out
+5EBE: DD23    			inc 	ix 												; bump character pointers
+5EC0: 23      			inc 	hl
+5EC1: E63F    			and 	$3F 											; bits 0..5. If this is zero, it's a match
+5EC3: 2004    			jr 		nz,__FW_CompareFail 							; if non-zero the match failed.
+5EC5: 10F3    			djnz 	__FW_CompareLoop 								; checked length and all characters ?
+5EC7: 180C    			jr 		__FW_Found 										; yes, found it.
+              	;
+              	;		Comparison failed ; restore IX and HL and go to the next entry
+              	;
+5EC9:         	__FW_CompareFail:
+5EC9: E1      			pop 	hl
+5ECA: DDE1    			pop 	ix
+              	;
+5ECC:         	__FW_NextWord:
+5ECC: DD5E00  			ld 		e,(ix+0)										; offset to next in DE
+5ECF: 1600    			ld 		d,0
+5ED1: DD19    			add 	ix,de 											; add the offset
+5ED3: 18CF    			jr 		__FW_Loop 										; and try again.
+              	;
+              	;		Match successful. Restore IX/HL, copy IX->HL (dictionary entry) and exit with CC
+              	;
+5ED5:         	__FW_Found:
+5ED5: E1      			pop 	hl 												; restore saved values.
+5ED6: DDE1    			pop 	ix
+              	
+5ED8: DDE5    			push 	ix 												; put IX -> HL
+5EDA: E1      			pop 	hl
+              	
+5EDB: DDE1    			pop 	ix
+5EDD: D1      			pop 	de
+5EDE: C1      			pop 	bc
+5EDF: F1      			pop 	af
+5EE0: 37      			scf 													; return with carry clear
+5EE1: 3F      			ccf
+5EE2: C9      			ret		
+              	;
+              	;		Match failed. Restore registers and exit with CS
+              	;
+5EE3:         	__FW_Fail:
+5EE3: DDE1    			pop 	ix
+5EE5: D1      			pop 	de
+5EE6: C1      			pop 	bc
+5EE7: F1      			pop 	af
+5EE8: 37      			scf														; return with Carry Flag set.
+5EE9: C9      			ret
+              	
+              	
+              			include "compiler/comexec.asm"				; word compile/execute code
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		comexec.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Word compile/execute
+              	;		Date : 		7th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ********************************************************************************************************
+              	;
+              	;								Compile the word at HL
+              	;
+              	; ********************************************************************************************************
+              	
+5EEA:         	CompileOneWord:
+5EEA: F5      		push 	af
+5EEB: E5      		push 	hl 										; save address of word
+5EEC: AF      		xor 	a
+5EED: CD9A5E  		call 	FindWord 								; check it is in dictionary
+5EF0: 301B    		jr 		nc,__COWFound 							; found that word.
+              	
+5EF2: E1      		pop 	hl 										; restore the word text
+5EF3: CDD25D  		call 	ConvertWordToInteger 					; integer ?
+5EF6: 3005    		jr 		nc,__COWInteger 
+              	
+5EF8:         	__COWError:
+5EF8: C3075B  		jp 		ErrorHandler
+              		
+5EFB:         	__COWExit:
+5EFB: F1      		pop 	af
+5EFC: C9      		ret
+              	
+              	;
+              	;		Compiling an integer
+              	;
+5EFD:         	__COWInteger:
+5EFD: 3EEB    		ld 		a,$EB
+5EFF: CD525E  		call 	CompileByte
+5F02: 3E21    		ld 		a,$21
+5F04: CD525E  		call 	CompileByte
+5F07: EB      		ex 		de,hl
+5F08: CD5F5E  		call 	CompileWord
+5F0B: 18EE    		jr 		__COWExit	
+              	;
+              	;		Compiling a word.
+              	;
+5F0D:         	__COWFound:
+              	
+5F0D: D1      		pop 	de 										; no longer need the word text
+              	
+5F0E: 23      		inc 	hl 										; get the address to DE
+5F0F: 5E      		ld 		e,(hl)
+5F10: 23      		inc 	hl
+5F11: 56      		ld 		d,(hl)
+5F12: 23      		inc 	hl	
+5F13: 7E      		ld 		a,(hl) 									; page into A.
+              	
+5F14: 23      		inc 	hl 										; see if macro bit set
+5F15: CB7E    		bit 	7,(hl) 	
+5F17: 2006    		jr 		nz,__COWExecMacro 						; do it as a macro
+              	
+5F19: EB      		ex 		de,hl 									; address is now in AHL
+5F1A: CD6A5E  		call 	CompileCall 							; compile that call
+5F1D: 18DC    		jr 		__COWExit
+              	;
+              	;		Execute ADE as a macro
+              	;
+5F1F:         	__COWExecMacro:
+5F1F: EB      		ex 		de,hl
+5F20: CD755E  		call 	ExecuteHLAWord
+5F23: 18D6    		jr 		__COWExit
+              	
+              	; ********************************************************************************************************
+              	;
+              	;								Execute the word at HL
+              	;
+              	; ********************************************************************************************************
+              	
+5F25:         	ExecuteOneWord:
+5F25: F5      		push 	af
+5F26: E5      		push 	hl 										; save word
+5F27: 3E01    		ld 		a,1 									; find only executables
+5F29: CD9A5E  		call 	FindWord 								; see if in dictionary
+5F2C: 3012    		jr 		nc,__EOWFound 							; if found execute it
+5F2E: E1      		pop 	hl 										; restore it.
+5F2F: CDD25D  		call 	ConvertWordToInteger 					; is it an integer
+5F32: 38C4    		jr 		c,__COWError 							; if so, unknown word.
+              	;
+              	;		Found a constant so replicate the A->B const->A
+              	;
+5F34: 2A945E  		ld 		hl,(AWork) 								; do the load, so A->B
+5F37: 22965E  		ld 		(BWork),hl
+5F3A: ED53945E		ld 		(AWork),de 								; save new number in B
+5F3E: F1      		pop 	af 										; and return
+5F3F: C9      		ret
+              	;
+              	;		Found executable (e.g. Non Macro) so get its addres and do it
+              	;
+5F40:         	__EOWFound:
+5F40: D1      		pop 	de
+5F41: 23      		inc 	hl 										; put address in DE
+5F42: 5E      		ld 		e,(hl) 							
+5F43: 23      		inc 	hl
+5F44: 56      		ld 		d,(hl)
+5F45: 23      		inc 	hl
+5F46: 7E      		ld 		a,(hl) 									; page in A
+5F47: EB      		ex 		de,hl 
+5F48: CD755E  		call 	ExecuteHLAWord  						; execute word at HLA
+5F4B: F1      		pop 	af
+5F4C: C9      		ret
+              			include "__words.asm"						; generated words file.
+              	;
+              	;  **** AUTOMATICALLY GENERATED ****;
+              	;
+              	;
+              	; File : words/compilehelpers.asm
+              	;
+5F4D:         	definition_63_2c:
+5F4D: 7D      	  ld   a,l
+5F4E: C3525E  	  jp   CompileByte
+5F51:         	definition_2c:
+5F51: C35F5E  	  jp   CompileWord
+5F54:         	definition_70_72_69_76_61_74_65:
+5F54: 3E40    	  ld   a,$40
+5F56: C3BC5D  	  jp   SetLastEntryBit
+5F59:         	definition_6d_61_63_72_6f:
+5F59: 3E80    	  ld   a,$80
+5F5B: C3BC5D  	  jp   SetLastEntryBit
+              			
+              	; ********************************************************************************************************
+              	;
+              	;												Data Area
+              	;
+              	; ********************************************************************************************************
+              	
+5F5E:         	stackBegin:											; Z80 Return stack.
+5F5E: FFFFFFFF			ds 		128 
+5F62: FF...   	
+5FDE:         	stackTop:
+5FDE: 0000    			dw 		0
+              	
+5FE0:         	SystemVariables:
+              			
+5FE0:         	SVRunAddress:
+5FE0: 0C5B    			dw 		CompileScreenBlockCode				; +0,+1 	run address
+5FE2:         	SVDictionaryBase:
+5FE2: EA5F    			dw		DictionaryBase						; +2,+3 	dictionary base address
+5FE4:         	SVNextDictionaryFree: 
+5FE4: EA5F    			dw 		DictionaryNextFree 					; +4,+5 	dictionary next free byte
+5FE6:         	SVNextProgramFree: 	
+5FE6: 0080    			dw 		ProgramNextFree						; +6,+7 	program next free byte
+5FE8:         	SVNextProgramFreePage:
+5FE8: 00FF    			db 		0,$FF								; +8 	  	page number program next free byte
+              	
+              	; ********************************************************************************************************
+              	;
+              	;											   Dictionary Area
+              	;
+              	; ********************************************************************************************************
+              	
+5FEA:         	DictionaryBase:
+5FEA:         	DictionaryNextFree:
+5FEA: 00      			db 		0
+              	
+              	;
+              	;		+0				offset to next entry. When zero, you are at the end of the dictionary.
+              	;		+1,+2			address of code
+              	;		+3 				page number of code
+              	;		+4 				information 	Bit 7:Macro Bit 6:Private Bit 5-0:Length
+              	;		+5 				first character of name, 6 bit ASCII
+              	;		+6 				second character of name, 6 bit ASCII
+              	;		+5+name.length	last character of name, 6 bit ASCII
+              	;
+              	
+              	; ********************************************************************************************************
+              	;
+              	;										 Uncontended memory area
+              	;
+              	; ********************************************************************************************************
+              	
+5FEB: FFFFFFFF			org 	SplitPoint
+5FEF: FF...   	
+              	
+8000:         	ProgramNextFree:
+              	
+
+
+; +++ segments +++
+
+#CODE :        start=23296 len=9472 
+
+; +++ global symbols +++
+
+AWork                 = $5E94 =  24212          access.asm:79
+BWork                 = $5E96 =  24214          access.asm:81
+BaseAddress           = $5B00 =  23296          core.asm:13
+CWork                 = $5E98 =  24216          access.asm:83
+ColdStart             = $5B00 =  23296          core.asm:22 (unused)
+CompileBlock          = $5CE6 =  23782          compiler.asm:17
+CompileByte           = $5E52 =  24146          access.asm:18
+CompileCall           = $5E6A =  24170          access.asm:50
+CompileOneWord        = $5EEA =  24298          comexec.asm:18
+CompileScreenBlockCode = $5B0C =  23308          core.asm:33
+CompileWord           = $5E5F =  24159          access.asm:35
+ConvertWordToInteger  = $5DD2 =  24018          convert.asm:12
+DefineNewWord         = $5D72 =  23922          define.asm:18
+DictionaryBase        = $5FEA =  24554          core.asm:87
+DictionaryNextFree    = $5FEA =  24554          core.asm:88
+Div16_Loop1           = $5CC5 =  23749          divide.asm:27
+Div16_Loop2           = $5CD6 =  23766          divide.asm:41
+Div16_NoAdd1          = $5CCD =  23757          divide.asm:33
+Div16_NoAdd2          = $5CDE =  23774          divide.asm:47
+DivideMod16           = $5CBB =  23739          divide.asm:18 (unused)
+ErrorHandler          = $5B07 =  23303          core.asm:27
+ExecuteHLAWord        = $5E75 =  24181          access.asm:64
+ExecuteOneWord        = $5F25 =  24357          comexec.asm:82
+FindWord              = $5E9A =  24218          find.asm:19
+HaltCode              = $5B09 =  23305          core.asm:29
+IOClearScreen         = $5B35 =  23349          hardware.asm:49 (unused)
+IOColours             = $5BC7 =  23495          hardware.asm:203
+IOCursorPosition      = $5BCB =  23499          hardware.asm:209
+IOPrintCharacter      = $5BCD =  23501          hardware.asm:218 (unused)
+IOScanKeyboard        = $5BDA =  23514          hardware.asm:233 (unused)
+IOScreenHeight        = $0018 =     24          hardware.asm:13 (unused)
+IOScreenWidth         = $0020 =     32          hardware.asm:12 (unused)
+IOSetCursor           = $5B17 =  23319          hardware.asm:22
+IOWriteCharacter      = $5B55 =  23381          hardware.asm:78
+LastEntry             = $5DBA =  23994          define.asm:63
+Multiply16            = $5CA1 =  23713          multiply.asm:18 (unused)
+ProgramNextFree       = $8000 =  32768          core.asm:109
+SVDictionaryBase      = $5FE2 =  24546          core.asm:72
+SVNextDictionaryFree  = $5FE4 =  24548          core.asm:74
+SVNextProgramFree     = $5FE6 =  24550          core.asm:76
+SVNextProgramFreePage = $5FE8 =  24552          core.asm:78
+SVRunAddress          = $5FE0 =  24544          core.asm:70
+SetLastEntryBit       = $5DBC =  23996          define.asm:72
+SplitPoint            = $8000 =  32768          core.asm:12
+SystemVariables       = $5FE0 =  24544          core.asm:68 (unused)
+__COWError            = $5EF8 =  24312          comexec.asm:29
+__COWExecMacro        = $5F1F =  24351          comexec.asm:71
+__COWExit             = $5EFB =  24315          comexec.asm:32
+__COWFound            = $5F0D =  24333          comexec.asm:50
+__COWInteger          = $5EFD =  24317          comexec.asm:39
+__Core__Mult_Loop     = $5CA8 =  23720          multiply.asm:24
+__Core__Mult_Shift    = $5CAD =  23725          multiply.asm:28
+__EOWFound            = $5F40 =  24384          comexec.asm:102
+__FW_CompareFail      = $5EC9 =  24265          find.asm:64
+__FW_CompareLoop      = $5EBA =  24250          find.asm:52
+__FW_Fail             = $5EE3 =  24291          find.asm:93
+__FW_Found            = $5ED5 =  24277          find.asm:76
+__FW_Loop             = $5EA4 =  24228          find.asm:30
+__FW_NextWord         = $5ECC =  24268          find.asm:68
+__FW_NotExecutablesOnly = $5EB5 =  24245          find.asm:42
+__SLENotSet           = $5DCE =  24014          define.asm:90
+__XHLAWord            = $5E92 =  24210          access.asm:76
+___kr4                = $5C07 =  23559          hardware.asm:262
+__cbCharAvailable     = $5D43 =  23875          extract.asm:65
+__cbGWExit            = $5D26 =  23846          extract.asm:37
+__cbGWNext            = $5D17 =  23831          extract.asm:27
+__cs1                 = $5B3A =  23354          hardware.asm:53
+__cs2                 = $5B42 =  23362          hardware.asm:58
+__cwiConvertLoop      = $5DFF =  24063          convert.asm:50
+__cwiFail             = $5E33 =  24115          convert.asm:94
+__cwiFound            = $5E17 =  24087          convert.asm:66
+__cwiMulLoop          = $5E40 =  24128          convert.asm:106
+__cwiMulNotAdd        = $5E45 =  24133          convert.asm:110
+__cwiMultiplyDEByC    = $5E3B =  24123          convert.asm:102
+__cwiNoSign           = $5E2E =  24110          convert.asm:87
+__cwiNotHexadecimal   = $5DF5 =  24053          convert.asm:41
+__cwiNotSigned        = $5DEB =  24043          convert.asm:34
+__cwiSucceed          = $5E23 =  24099          convert.asm:79
+__dnwCopyName         = $5DA0 =  23968          define.asm:45
+__kr1                 = $5BEB =  23531          hardware.asm:245
+__kr2                 = $5BF6 =  23542          hardware.asm:251
+__kr3                 = $5BF8 =  23544          hardware.asm:254
+__kr_exit             = $5C25 =  23589          hardware.asm:291
+__kr_keypressed       = $5C1F =  23583          hardware.asm:285
+__kr_no_shift_table   = $5C29 =  23593          hardware.asm:306
+__kr_shift_table      = $5C79 =  23673          hardware.asm:318
+__kr_symbol_shift_table = $5C51 =  23633          hardware.asm:312
+__scexit              = $5B2D =  23341          hardware.asm:36
+__wc2                 = $5B88 =  23432          hardware.asm:123
+__wcexit              = $5BC2 =  23490          hardware.asm:192
+bufferEnd             = $5D70 =  23920          extract.asm:78
+bufferPtr             = $5D6E =  23918          extract.asm:76
+cbGetChar             = $5D2E =  23854          extract.asm:47
+cbGetWord             = $5D07 =  23815          extract.asm:17
+cbNextWord            = $5CED =  23789          compiler.asm:23
+definition_2c         = $5F51 =  24401          __words.asm:10 (unused)
+definition_63_2c      = $5F4D =  24397          __words.asm:7 (unused)
+definition_6d_61_63_72_6f = $5F59 =  24409          __words.asm:15 (unused)
+definition_70_72_69_76_61_74_65 = $5F54 =  24404          __words.asm:12 (unused)
+stackBegin            = $5F5E =  24414          core.asm:63 (unused)
+stackTop              = $5FDE =  24542          core.asm:65
+wordBuffer            = $5D4C =  23884          extract.asm:74
+
+
+total time: 0.0043 sec.
+no errors

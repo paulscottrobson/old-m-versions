@@ -1,0 +1,69 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      :
+;      @type      immediate
+;      @desc      colon definition here.
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		xor 	a 							; definition of type zero.
+		call	CreateDefinition
+		ret
+
+
+CreateDefinition:
+		push 	af
+		push 	bc
+		push 	de
+		push 	hl
+		push 	ix
+
+		push 	af							; save type ID
+		call 	ParseWord 					; get the name of the new definition
+
+		pop 	af 							; put AF on first, HL second.	
+		push 	hl
+		push  	af
+
+		ld 		a,h 						; throw error if nothing available.
+		or 		l
+		jp 		z,ERR_NoDefName
+
+		ld 		ix,(SINextFreeDictionary)
+
+		ld 		hl,(SINextFreeProgram)		; copy address into +1,+2
+		ld 		(ix+1),l
+		ld 		(ix+2),h
+		ld 		a,(SINextFreePage)			; page into IX+3
+		ld 		(ix+3),a
+		pop 	af							; type byte into IX+4
+		ld 		(ix+4),a
+		ld 		bc,5 						; point IX to start of name
+		add 	ix,bc 						; C is the length, +5
+		pop 	hl 							; restore name
+__CopyName:
+		ld 		a,(hl) 						; copy byte over
+		ld 		(ix+0),a
+		inc 	ix 							; advance pointers and count
+		inc 	hl
+		inc 	c
+		or 		a 							; until whole thing copied
+		jr 		nz,__CopyName
+		dec 	c 							; one too much copied
+		dec 	ix
+		ld 		hl,(SINextFreeDictionary)	; this is the start
+		ld 		(hl),c 						; offset to next
+		ld 		(ix+0),0 					; add zero terminator to dictionary
+		ld 		(SINextFreeDictionary),ix 	; and write it back.
+		dec 	ix 							; set bit 7 of last character
+		set 	7,(ix+0)
+
+		pop 	ix
+		pop 	hl
+		pop 	de
+		pop 	bc
+		pop 	af
+
+		ret

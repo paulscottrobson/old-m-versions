@@ -1,0 +1,39 @@
+uses console.m8
+uses editor.m8
+import debugloader.m8 
+
+: main 
+
+con.clear con.green
+editor.clear
+
+dbl.reset
+
+dbl.comment 
+	"$a2_editor.clearx_this_is_the_comment_bit dbl.w
+dbl.define
+	"new.word dbl.w
+dbl.immediate
+	"23_,_-2_+ dbl.w
+dbl.compile
+	"+_-42_$13FA dbl.w
+	"for_next_;_ dbl.w
+
+$1800 count! $FF $4000 fill
+768 count! 2 $5800 fill
+
+buffer swap for
+	buffer i + c@ i screen!
+next
+
+con.clear
+buffer.reset 
+begin 
+	buffer.get 
+	a>r 0= if debug halt then r>a 
+	con.yellow con.print.string
+	check.integer
+	con.space con.white con.print.word con.space con.green swap con.print.word
+	con.cr 0
+until
+

@@ -1,0 +1,63 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name : 		active.mz
+//		Author : 	Paul Robson (paul@robsons.org.uk)
+//		Purpose : 	Active compilation functions
+//		Date : 		1st October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+
+//
+//		Dictionary next free / Program next free
+//
+//:here b>r sys.info 2+ 2+ 2+ @ r>b ;
+//:here.d b>r sys.info 2+ 2+ @ r>b ;
+
+// ********************************************************************************************************
+//
+//										This code is macro structures
+//
+// ********************************************************************************************************
+
+//
+//		Loop locations for internal structures
+//
+//variable if.marker  						// Branch position for if marker.
+//variable begin.marker  						// Branch back for begin
+//variable for.marker 						// Branch back for for
+
+//
+//		If ... Then code 
+//
+//:if 	{ld.a,h} i, {or.l} i, {jp.z,aaaa} a,
+//		here if.marker! 0 ,
+//		;
+//:-if 	{bit.7,h} i, {jp.z,aaaa} a,
+//		here if.marker! 0 ,
+//		;
+//:then	here if.marker@ !
+//		;
+
+//
+//		Begin ... Until code
+//
+//:begin 	here begin.marker! 
+//		;
+//:until 	{ld.a,h} i, {or.l} i, {jp.z,aaaa} i, begin.marker@ ,
+//		;
+//:-until	{bit.7,h} i, {jp.z,aaaa} i, begin.marker@ ,
+//		;
+
+//
+//		For ... Next code
+//
+//:for 	here for.marker!
+//		{dec.hl} i, {push.hl} a,
+//		;
+//:next 	{pop.hl} i, {ld.a,h} i, {or.l} i, {jp.nz,aaaa} i, for.marker@ ,
+//		;
+//:i 		{pop.hl} i, {push.hl} i, ;
+

@@ -1,0 +1,13 @@
+// 
+//		Editor testing program
+//
+
+import editor.m8 
+
+: main 
+
+4 16 editor.setup
+editor.clear
+editor.edit
+
+debug halt ;

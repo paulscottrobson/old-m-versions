@@ -1,0 +1,39 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      sysinfo
+;      @type      word
+;      @desc      get address of data area
+;
+; *******************************************************************************
+; *******************************************************************************
+
+SystemInfo:
+	ld 		hl,SystemInfo
+	ret
+	org		SystemInfo+8 	
+
+; *******************************************************************************
+;								M7 System Information Table
+; *******************************************************************************
+
+;
+;	SIA addresses are put in the msystem.py class as static constants.
+;
+
+SIAProgramPointer:
+	dw 		ProgramSpace 						; (+8,+9)	Next free program byte
+
+SIAProgramPage:									; (+10)		Next free program byte (page)
+	db 		0,0
+
+SIARuntimeAddress:								; (+12,+13)	address of main program
+	dw 		HaltProcessor
+
+SIAScreenWidth:									; (+14) 	screen width
+	db 		IOScreenWidth,0
+
+SIAScreenHeight:								; (+16) 	screen height
+	db 		IOScreenHeight,0	
+
+	

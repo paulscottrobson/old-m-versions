@@ -1,0 +1,207 @@
+// ************************************************************************************************
+// ************************************************************************************************
+//
+//		Name: 		runtime.m8
+//		Purpose:	Interactive Runtime code
+//		Date:		5th September 2018
+//		Author:		Paul Robson (paul@robsons.org.uk)
+//
+// ************************************************************************************************
+// ************************************************************************************************
+
+variable run.word								// current word being compiled.
+variable run.last.word 							// Last word defined (to make private etc.)
+
+// ************************************************************************************************
+//							Report error message in A
+// ************************************************************************************************
+
+: run.error
+	con.print.string -1 -1 debug halt
+;
+
+// ------------------------------------------------------------------------------------------------
+//								Report word as unknown
+// ------------------------------------------------------------------------------------------------
+
+: run.unknown.word.error private
+	"Unknown_word_:_ con.print.string 			// print message
+	run.word@ run.error							// use word as error message so we know which !
+;
+
+// ------------------------------------------------------------------------------------------------
+//				Write byte into dictionary at address in run.def.defptr
+// ------------------------------------------------------------------------------------------------
+
+variable run.def.dptr 							// Dictionary pointer
+
+: run.define.cbyte private
+	ab>r
+	run.def.dptr@ c! 							// save at pointer value
+	1+ run.def.dptr! 							// add 1 to that
+	r>ab
+;
+
+// ------------------------------------------------------------------------------------------------
+//											Define a word
+// ------------------------------------------------------------------------------------------------
+
+: run.define.word private
+	ab>r
+	sysinfo 18 + @ run.def.dptr!  				// Copy next free dictionary pointer from sysinfo[18]
+	run.last.word! 								// update last word used.	
+	 
+	run.word@ c@ 5 + run.define.cbyte 			// offset 		(5 + length)
+	here run.define.cbyte 						// low byte
+	bswap run.define.cbyte 						// high byte 
+	sysinfo 10 + c@ run.define.cbyte 			// page number to call.
+	0 run.define.cbyte 							// information byte.
+
+	run.word@ a>b c@ for 						// copy name in.
+		b>a 1+ a>r c@ $3F and run.define.cbyte
+		r>b
+	next
+
+	0 run.def.dptr@ c! 							// add end of dictionary zero
+	1- $80 swap +! 								// set bit 7 of last character
+
+	sysinfo 18 + run.def.dptr@ swap ! 			// Update next free dictionary pointer
+	r>ab
+;
+
+// ------------------------------------------------------------------------------------------------
+//				 					  Compile dictionary item A
+// ------------------------------------------------------------------------------------------------
+
+variable run.dict.item 							// dictionary item
+
+: run.compile.dictionary.item private
+	run.dict.item! 4 + c@						// save and look at the information byte (offset 4)
+
+	$40 and if 									// is it immediate (macro, structure, etc.) bit 6 set
+		run.dict.item@ 1+ @ a>r ; 				// load code address and call it.
+	then 
+
+	$CD c, 										// compile CALL (won't work in paging)
+	run.dict.item@ 1+ @ , 						// compile call address
+;
+
+// ------------------------------------------------------------------------------------------------
+//								Write code to compile load constant A
+// ------------------------------------------------------------------------------------------------
+
+: run.compile.load.constant private
+	a>r 
+	$EB c,										// ex de,hl
+	$21 c, 										// ld hl,<constant>
+	r>a , 										// address
+;
+
+// ------------------------------------------------------------------------------------------------
+//								Code to compile load string constant
+// ------------------------------------------------------------------------------------------------
+
+: run.compile.load.string.constant private
+
+	here a>r 									// save address
+
+	$18 c, 										// JR
+	run.word@ c@ 2- 1+ c, 						// 1 + length (total space)
+	1- c, 										// length of string (byte)
+	for  										// output the string in 6 bit ASCII.
+		run.word@ a>b c@ + i - 1- c@ $3F and c,
+	next
+
+	r>a 2+ run.compile.load.constant 			// compile load that address (length byte)
+;
+
+// ------------------------------------------------------------------------------------------------
+//							Compile a modifier/address pairing. return 0 if okay.
+// ------------------------------------------------------------------------------------------------
+
+variable run.modifier 							// modifier
+variable run.address 							// word address
+
+: run.compile.word.modifier private
+
+	run.modifier@ $21 = if 						// ! (store at address)
+		$22 c,									// ld (xxxx),hl
+		run.address@ ,
+		;
+	then
+
+	run.modifier@ 0= if 						// @ (load from address)
+		$EB c,									// ex de,hl
+		$2a c,									// ld hl,(xxxxx)
+		run.address@ ,
+		;
+	then 
+
+	run.modifier@ $26 = if 						// & (load address)
+		run.address@ 
+		run.compile.load.constant
+		;
+	then		
+
+	run.modifier@ $23 = if 						// # (array access)
+		$01 c,									// ld bc,xxxx
+		run.address@ ,
+		$09 c, 									// add hl,bc
+		;	
+	then
+
+	run.unknown.word.error 						// bad modifier.
+;
+
+// ------------------------------------------------------------------------------------------------
+//								Compile a word (error if can't do it)
+// ------------------------------------------------------------------------------------------------
+
+: run.compile.word private
+	ab>r
+
+	run.word@ find 								// Look up word
+	if 											// if found.
+		run.compile.dictionary.item 			// compile as dictionary item
+		r>ab ; 									// and return
+	then 
+	
+	run.word@ check.integer						// is it an integer constant
+	if
+		swap run.compile.load.constant 			// compile code to load that
+		r>ab ; 									// and return
+	then 
+
+	run.word@ 1+ c@ $3F and $22 = 				// string constant - first char is a quote.
+	if 
+		run.compile.load.string.constant 		// string constant code
+		r>ab ; 									// and return
+	then
+
+	run.word@ a>b c@ + c@ $3F and run.modifier!	// Get last character of word (e.g. the modifier)
+	-1 run.word@ +! 							// reduce string length by one.
+	run.word@ find run.address! 				// look it up (dictionary entry)
+	a>r 1 run.word@ +! r>a						// add one to string length fixing it back
+
+	if 											// was it a dictionary word ??
+		run.address@ 1+ @ run.address! 			// get the actual address of the code.
+		run.compile.word.modifier 				// compile the word with modifier
+		r>ab ; 									// and return
+	then
+
+	run.unknown.word.error 						// give up	
+;
+
+// ************************************************************************************************
+//											Action word at A
+// ************************************************************************************************
+
+: run.compile
+	ab>r run.word!
+		1+ c@ $C0 and 								// get type
+		$00 = if run.define.word then 				// $00 (red) define new word
+													// $40 (white) comment, do nothing
+		swap $80 = if run.compile.word then 		// $80 (green) compile
+		swap $C0 = if debug halt then 				// $C0 (yellow) execute
+	r>ab 
+;

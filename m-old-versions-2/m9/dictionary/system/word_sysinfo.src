@@ -1,0 +1,30 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      system.info
+;      @type      variable
+;      @desc      get address of data area
+;
+; *******************************************************************************
+; *******************************************************************************
+
+SISystemInformation:
+	
+
+SINextFreeSlow:									; (+0,+1) 	next free byte in contended memory
+	dw 		HighSlowMemory
+
+SINextFreeFast:									; (+2,+3) 	next free byte in uncontended memory
+	dw 		HighFastMemory
+
+SINextFreeFastPage:								; (+4)	  	page number of next free program byte, uncontended
+	db 		0,0
+
+SIRunTimeAddress:								; (+6,+7)	address of main program
+	dw 		HaltProcessor
+
+SIStack:										; (+8,+9)	stack initial value
+	dw 		Z80Stack
+	
+
+

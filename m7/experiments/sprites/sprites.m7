@@ -1,0 +1,30 @@
+: next!
+	push.ab
+	push.ab
+	$243B p!
+	pop.ab
+	swap
+	$253B p!
+	pop.ab
+;
+
+: createSprite
+
+	2 $303B p! 					// Pattern 2
+	256 for $CC $5B p! next 	// create a sort of sprite :)
+;
+
+: main 4 $FE p! 
+
+	createSprite
+
+	$01 21 next! // CTL $01,21 : REM Sprites on.
+	32256 for 
+		9 $303B p!	// OUT 0x303B, 9: REM Select sprite #9
+		i $57 p!	// OUT 0x57, 32: REM X position in 32
+		33 $57 p!	// OUT 0x57, 32: REM Y position in 32
+		0 $57 p!	// OUT 0x57, 0: REM no palette offset and no rotate and mirrors flags
+		130 $57 p!	// OUT 0x57, 130: REM Sprite visible and show pattern #2
+	next
+
+debug halt ;

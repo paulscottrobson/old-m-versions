@@ -1,0 +1,33 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      system.info
+;      @type      variable
+;      @desc      get address of data area
+;
+; *******************************************************************************
+; *******************************************************************************
+
+SISystemInformation:
+	
+
+SINextFreeDictionary:							; (+0,+1) 	next free byte in dictionary
+	dw 		DictionarySpace 	
+
+SINextFreeProgram:								; (+2,+3) 	next free byte in program space
+	dw 		ProgramSpace
+
+SINextFreePage:									; (+4)	  	page number of next free program byte
+	db 		0,0
+
+SIRunTimeAddress:								; (+6,+7)	address of main program
+	dw 		StartCompile
+
+SIStack:										; (+8,+9)	stack initial value
+	dw 		Z80Stack
+	
+SIDictionaryStart:								; (+10,+11)	start of dictionary.
+	dw 		DictionaryBase
+
+
+

@@ -1,0 +1,128 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name :		editor.m8
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Purpose :	Screen Editor
+//		Date :		19th September 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+[words]
+
+variable edit.start.pos 									// start position in chars
+variable edit.size 											// size in characters
+variable edit.cursor 										// cursor offset
+variable edit.key 											// key press
+
+// ************************************************************************************************
+//					Initialise Editor (B = Start Row, A = # Rows)
+// ************************************************************************************************
+
+:edit.setup
+	ab>r
+	16* 2*	edit.size! swap 16* 2* edit.start.pos!	
+	0 edit.cursor!
+	r>ab
+;
+
+//
+//		Screen Refresh
+//
+:edit.refresh private
+	edit.size@ for
+		edit.start.pos@ + a>c
+		i buffer + c@ swap c>a screen!
+	next
+	edit.cursor@ 0 max edit.size@ 1- min edit.cursor!
+	edit.start.pos@ + cursor!
+;
+
+//
+//		Handle cursor movement
+//
+:edit.move.cursor private
+	b>c edit.key@ = if
+		c>a edit.cursor@ + edit.cursor!
+	then
+;
+
+//
+//		Handle carriage return
+//
+:edit.cr private
+	edit.cursor@ $FFE0 and 32 + edit.cursor!
+;
+
+//
+//		Put spaces at back and front of buffer
+//
+:edit.space.surround private
+	$20 buffer 1- c! 
+	buffer buffer.size + $20 swap c!
+;
+//
+//		Handle backspace
+//
+:edit.backspace private
+	edit.cursor@ if
+		1- edit.cursor!
+		buffer.size swap - a>c
+		edit.space.surround edit.cursor@ buffer + a>b 1+ swap copy
+	then 
+;
+//
+//		Insert key
+//
+:edit.insert private
+	buffer.size edit.cursor@ - a>c
+	buffer edit.cursor@ + a>b 1+ copy
+	1- a>r
+	c@ $C0 and a>c edit.key@ $3F and c>b +
+	r>b swap c!
+	edit.cursor@ 1+ edit.cursor! 
+;
+
+//
+//		Colour Repaint
+//
+:edit.repaint private
+	a>r edit.space.surround 
+	buffer edit.cursor@ + a>c
+	begin
+		edit.key@ 3 and 16* 4* a>r
+		c>a c@ $3F and r>b + swap c>a c!
+		c>a r>b b>r + a>c
+		c>a c@ $3F and 32 =
+	until
+	r>a
+;
+
+// ************************************************************************************************
+//												Edit the buffer
+// ************************************************************************************************
+
+:edit.main private
+	edit.refresh
+	con.getkey edit.key!
+	13 = if edit.cr then
+	-1 20 edit.move.cursor
+	32 21 edit.move.cursor
+ 	-32 22 edit.move.cursor
+	1 23 edit.move.cursor
+	edit.key@ 4/ 4 = if -1 edit.repaint 1 edit.repaint then
+	edit.key@ 8 = if edit.backspace then
+	edit.key@ 32 >= if edit.insert then
+;
+
+// ************************************************************************************************
+//
+//				Block version (exit on shift space) line version (exit on CR)
+//
+// ************************************************************************************************
+
+:edit.edit.block abc>r begin edit.main edit.key@ 27 = until r>abc ;
+:edit.edit.line  abc>r begin edit.main edit.key@ 13 = until r>abc ;
+
+[crunch]

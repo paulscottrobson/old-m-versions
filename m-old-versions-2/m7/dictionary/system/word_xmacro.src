@@ -1,0 +1,16 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      system.xmacro
+;      @type      slow
+;	   @info 	  compileOnly
+;      @desc      Expand macro. The top of the return stack points to the count
+;	   @desc 	  followed by the macro data, the one after is the actual return.
+;
+; *******************************************************************************
+; *******************************************************************************
+
+expandMacro:
+		pop 	hl
+		ret
+		

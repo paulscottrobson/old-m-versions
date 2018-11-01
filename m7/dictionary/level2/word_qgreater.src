@@ -1,0 +1,21 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      >
+;      @type      word
+;      @desc      Set A to B > A ; e.g. A-B < 0, values 0 (false) or -1 (true)
+;
+; *******************************************************************************
+; *******************************************************************************
+
+__Greater:
+		xor 	a									; clear carry
+		sbc 	hl,de 								; subtract for comparison
+		ld  	a,h 								; preserve MSB in A for sign bit
+		add 	hl,de 								; fix values back.
+		bit 	7,a 								; check bit 7
+		jr 		nz,SetTrue 						
+		jr 		SetFalse
+		ret
+
+		

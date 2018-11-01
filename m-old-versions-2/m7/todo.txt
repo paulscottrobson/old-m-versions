@@ -1,0 +1,11 @@
+TODO:
+
+
+Line compiler class and check it.
+Do numeric and string constants
+Do unmodified words
+Do modified words
+Do : and check it works.
+Do the other control words.
+
+compile only in core, extract values to make their bits in dictionary correct

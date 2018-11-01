@@ -1,0 +1,40 @@
+// 
+//		Console testing program
+//
+
+import console.m8 
+
+: main 
+con.clear
+con.space 42 con.rawEmit con.cr
+42 con.rawEmit 4 con.spaces 43 con.rawEmit con.cr
+
+con.green con.cr 128 for con.emit next con.cr
+
+0 con.setcolour 65 con.emit con.cr
+1 con.setcolour 97 con.emit con.cr
+2 con.setcolour 66 con.emit con.cr
+3 con.setcolour 98 con.emit con.cr
+
+con.red 42 con.emit 
+con.white 42 con.emit 
+con.green 42 con.emit 
+con.yellow 42 con.emit 
+con.cr
+
+"Hello_WORLD con.print.string con.cr
+
+1234 con.print.dec con.space 
+$4A72 con.print.hex con.space
+con.print.bin con.cr
+
+$4E con.print.byte con.space $17F6 con.print.word con.cr
+
+
+0
+begin
+	swap con.getkey con.print.byte con.space swap 1+ debug
+-until
+
+debug halt ;
+

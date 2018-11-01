@@ -1,0 +1,1484 @@
+              	; --------------------------------------
+              	; zasm: assemble "kernel.asm"
+              	; date: 2018-10-08 18:05:50
+              	; --------------------------------------
+
+
+              	; ***************************************************************************************
+              	; ***************************************************************************************
+              	;
+              	;		Name : 		kernel.asm
+              	;		Author :	Paul Robson (paul@robsons.org.uk)
+              	;		Date : 		6th October 2018
+              	;		Purpose :	MZ Cross Compiler Machine code kernel.
+              	;
+              	; ***************************************************************************************
+              	; ***************************************************************************************
+              	
+0020:         	DictionaryPage = $20 								; Dictionary starts at this page
+0022:         	FirstCodePage = $22 								; Code Memory starts here
+004E:         	LastCodePage = $4E 									; Code Memory ends here
+              	
+              	; ***************************************************************************************
+              	;
+              	;										Start up 
+              	;
+              	; ***************************************************************************************
+              	
+8000:         			org 	$8000 								; enter at $8000
+8000: 1806    			jr 		Boot
+8002: FFFF    			org 	$8004
+8004: F984    			dw 		SystemInformation 					; address of SYSINFO at $8004
+8006:         	MacroExpansion:
+8006: 18FE    			jr 		MacroExpansion 						; macro expansion at $8006
+              	
+              	
+              	; ***************************************************************************************
+              	;
+              	;								Load and run boot code
+              	;
+              	; ***************************************************************************************
+              	
+8008:         	Boot:	;db 	$DD,$01
+8008: F3      			di
+8009: ED7B0285			ld 		sp,(SIStackResetValue)				; reset the stack
+800D: CDAC83  			call 	PAGEReset 							; reset the paging system.
+8010: CDD180  			call 	IOClearScreen
+8013: 210000  			ld 		hl,0
+8016: CDB380  			call 	IOSetCursor
+8019: 3A0185  			ld 		a,(SIBootProgramPage)				; switch to the boot program page
+801C: CDC283  			call 	PAGESwitch
+801F: 2AFF84  			ld 		hl,(SIBootProgramAddress) 			; get address of boot program
+8022: E9      			jp 		(hl)								; go there.
+              	
+8023:         	HaltCode: 											; pretty much giving up here.
+8023: F3      			di
+8024: 76      			halt
+8025: 18FC    			jr 		HaltCode
+              	
+              	; ***************************************************************************************
+              	;
+              	;								Words and Support Files
+              	;
+              	; ***************************************************************************************
+              	
+              			include "support/debug.asm"
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		debug.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Debug routine (shows A B C on bottom line)
+              	;		Date : 		7th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+8027:         	DebugCode:	
+8027: C5      			push 	bc
+8028: D5      			push 	de
+8029: E5      			push 	hl
+              	
+802A: D5      			push 	de
+              	
+802B: EB      			ex 		de,hl
+802C: 0681    			ld 		b,'A'+$40
+802E: 0E40    			ld 		c,$40
+8030: 21F302  			ld 		hl,19+23*32
+8033: CD4580  			call 	__DisplayHexInteger
+              	
+8036: D1      			pop 	de
+8037: 0682    			ld 		b,'B'+$40
+8039: 0EC0    			ld 		c,$C0
+803B: 21FA02  			ld 		hl,26+23*32
+803E: CD4580  			call 	__DisplayHexInteger
+              	
+8041: E1      			pop 	hl
+8042: D1      			pop 	de
+8043: C1      			pop 	bc
+8044: C9      			ret		
+              	
+8045:         	__DisplayHexInteger:
+8045: 78      			ld 		a,b
+8046: CDF280  			call 	IOWriteCharacter
+8049: 23      			inc 	hl
+804A: 3EBA    			ld 		a,':'+$80
+804C: CDF280  			call 	IOWriteCharacter
+804F: 23      			inc 	hl
+8050: 7A      			ld 		a,d
+8051: CD5580  			call 	__DisplayHexByte
+8054: 7B      			ld 		a,e
+8055:         	__DisplayHexByte:
+8055: F5      			push 	af
+8056: 0F      			rrca
+8057: 0F      			rrca
+8058: 0F      			rrca
+8059: 0F      			rrca
+805A: CD5E80  			call	__DisplayHexNibble
+805D: F1      			pop 	af
+805E:         	__DisplayHexNibble:
+805E: E60F    			and 	$0F
+8060: FE0A    			cp 		10
+8062: 3802    			jr 		c,__DisplayIntCh
+8064: D639    			sub 	57
+8066:         	__DisplayIntCh:
+8066: C630    			add 	a,48
+8068: B1      			or 		c
+8069: CDF280  			call	IOWriteCharacter
+806C: 23      			inc 	hl
+806D: C9      			ret
+              	
+              			include "support/multiply.asm"
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		multiply.asm
+              	;		Purpose:	16 bit unsigned multiply
+              	;		Date:		2nd October 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;								Does HL = HL * DE
+              	;
+              	; *********************************************************************************
+              	
+806E:         	MULTMultiply16:
+806E: C5      			push 	bc
+806F: D5      			push 	de
+8070: 44      			ld 		b,h 							; get multipliers in DE/BC
+8071: 4D      			ld 		c,l
+8072: 210000  			ld 		hl,0 							; zero total
+8075:         	__Core__Mult_Loop:
+8075: CB41    			bit 	0,c 							; lsb of shifter is non-zero
+8077: 2801    			jr 		z,__Core__Mult_Shift
+8079: 19      			add 	hl,de 							; add adder to total
+807A:         	__Core__Mult_Shift:
+807A: CB38    			srl 	b 								; shift BC right.
+807C: CB19    			rr 		c
+807E: EB      			ex 		de,hl 							; shift DE left
+807F: 29      			add 	hl,hl
+8080: EB      			ex 		de,hl
+8081: 78      			ld 		a,b 							; loop back if BC is nonzero
+8082: B1      			or 		c
+8083: 20F0    			jr 		nz,__Core__Mult_Loop
+8085: D1      			pop 	de
+8086: C1      			pop 	bc
+8087: C9      			ret
+              	
+              			
+              			include "support/divide.asm"
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		divide.asm
+              	;		Purpose:	16 bit unsigned divide
+              	;		Date:		2nd October 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;			Calculates DE / HL. On exit DE = result, HL = remainder
+              	;
+              	; *********************************************************************************
+              	
+8088:         	DIVDivideMod16:
+              	
+8088: C5      		push 	bc
+8089: 42      		ld 		b,d 				; DE 
+808A: 4B      		ld 		c,e
+808B: EB      		ex 		de,hl
+808C: 210000  		ld 		hl,0
+808F: 78      		ld 		a,b
+8090: 0608    		ld 		b,8
+8092:         	Div16_Loop1:
+8092: 17      		rla
+8093: ED6A    		adc 	hl,hl
+8095: ED52    		sbc 	hl,de
+8097: 3001    		jr 		nc,Div16_NoAdd1
+8099: 19      		add 	hl,de
+809A:         	Div16_NoAdd1:
+809A: 10F6    		djnz 	Div16_Loop1
+809C: 17      		rla
+809D: 2F      		cpl
+809E: 47      		ld 		b,a
+809F: 79      		ld 		a,c
+80A0: 48      		ld 		c,b
+80A1: 0608    		ld 		b,8
+80A3:         	Div16_Loop2:
+80A3: 17      		rla
+80A4: ED6A    		adc 	hl,hl
+80A6: ED52    		sbc 	hl,de
+80A8: 3001    		jr 		nc,Div16_NoAdd2
+80AA: 19      		add 	hl,de
+80AB:         	Div16_NoAdd2:
+80AB: 10F6    		djnz 	Div16_Loop2
+80AD: 17      		rla
+80AE: 2F      		cpl
+80AF: 51      		ld 		d,c
+80B0: 5F      		ld 		e,a
+80B1: C1      		pop 	bc
+80B2: C9      		ret
+              		
+              		
+              			include "support/hardware.asm"
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		hardware.asm
+              	;		Purpose:	Hardware interface to Spectrum
+              	;		Date:		2nd October 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              		
+              	; *********************************************************************************
+              	;
+              	;		Set the current display cursor position to the offset specified in
+              	;		the lower 10 bits of HL.
+              	;
+              	; *********************************************************************************
+              	
+80B3:         	IOSetCursor:
+80B3: F5      			push 	af									; save registers
+80B4: E5      			push 	hl
+80B5: 2AF584  			ld 		hl,(IOCursorPosition)				; remove old cursor
+80B8: CBBE    			res 	7,(hl)
+80BA: E1      			pop 	hl
+80BB: E5      			push 	hl
+80BC: 7C      			ld 		a,h 								; convert new cursor to attr pos
+80BD: E603    			and 	03
+80BF: FE03    			cp 		3 									; cursor position out of range
+80C1: 2806    			jr 		z,__scexit							; don't update
+80C3: F658    			or 		$58
+80C5: 67      			ld 		h,a
+80C6: 22F584  			ld 		(IOCursorPosition),hl
+80C9:         	__scexit:		
+80C9: 2AF584  			ld 		hl,(IOCursorPosition)				; show new cursor
+80CC: CBFE    			set 	7,(hl)		
+80CE: E1      	 		pop		hl
+80CF: F1      			pop 	af
+80D0: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;								Clear the screen
+              	;
+              	; *********************************************************************************
+              	
+80D1:         	IOClearScreen:
+80D1: F5      			push 	af 									; save registers
+80D2: E5      			push 	hl
+80D3: 210040  			ld 		hl,$4000 							; clear pixel memory
+80D6: 3600    	__cs1:	ld 		(hl),0
+80D8: 23      			inc 	hl
+80D9: 7C      			ld 		a,h
+80DA: FE58    			cp 		$58
+80DC: 20F8    			jr 		nz,__cs1
+80DE: 3647    	__cs2:	ld 		(hl),$47							; clear attribute memory
+80E0: 23      			inc 	hl
+80E1: 7C      			ld 		a,h
+80E2: FE5B    			cp 		$5B
+80E4: 20F8    			jr 		nz,__cs2	
+80E6: 210000  			ld 		hl,$0000	
+80E9: CDB380  			call 	IOSetCursor
+80EC: AF      			xor 	a 									; border off
+80ED: D3FE    			out 	($FE),a
+80EF: E1      			pop 	hl 									; restore and exit.
+80F0: F1      			pop 	af
+80F1: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;	Write a character A on the screen at HL. HL is bits 0-9, A is a 2+6 bit
+              	;	colour / character.
+              	;
+              	; *********************************************************************************
+              	
+80F2:         	IOWriteCharacter:
+80F2: F5      			push 	af 									; save registers
+80F3: C5      			push 	bc
+80F4: D5      			push 	de
+80F5: E5      			push 	hl
+              	
+80F6: 4F      			ld 		c,a 								; save character in C
+              	
+80F7: 7C      			ld 		a,h 								; check H in range 0-2
+80F8: E603    			and 	3
+80FA: FE03    			cp 		3
+80FC: 2861    			jr 		z,__wcexit
+              	
+80FE: E5      			push 	hl 									; save screen address
+              	;
+              	;		update attribute
+              	;
+80FF: 7C      			ld 		a,h 								; convert to attribute position
+8100: E603    			and 	3
+8102: F658    			or 		$58
+8104: 67      			ld 		h,a
+              	
+8105: 79      			ld 		a,c 								; rotate left twice
+8106: 07      			rlca
+8107: 07      			rlca
+8108: E603    			and 	3 									; now a value 0-3
+810A: C664    			add 	a,IOColours & 255 					; add __wc_colours, put in DE
+810C: 5F      			ld 		e,a
+810D: 3E81    			ld 		a,IOColours / 256
+810F: CE00    			adc 	a,0
+8111: 57      			ld 		d,a
+8112: 1A      			ld 		a,(de)								; get colours.
+8113: 77      			ld 		(hl),a
+              	;
+              	;		char# 0-63 to font address
+              	;
+8114: 79      			ld 		a,c 								; A = char#
+8115: E63F    			and 	$3F 								; bits 0-6 only
+8117: EE20    			xor 	$20									; make it 7 bit.
+8119: C620    			add 	a,$20		
+811B: FE41    			cp 		'A' 								; make it lower case
+811D: 3806    			jr 		c,__wc2
+811F: FE5B    			cp 		'Z'+1
+8121: 3002    			jr 		nc,__wc2
+8123: C620    			add 	a,$20
+8125:         	__wc2:
+8125: 6F      			ld 		l,a 								; put in HL
+8126: 2600    			ld 		h,0
+8128: 29      			add 	hl,hl 								; x 8
+8129: 29      			add 	hl,hl
+812A: 29      			add 	hl,hl
+812B: 11003C  			ld 		de,$3C00 							; add $3C00
+812E: 19      			add 	hl,de
+812F: EB      			ex 		de,hl 								; put in DE (font address)
+              	;
+              	;		screen position 0-767 to screen address
+              	;
+8130: E1      			pop 	hl 									; restore screen address
+8131: 7C      			ld 		a,h 								; L contains Y5-Y3,X4-X0. Get H
+8132: E603    			and 	3 									; lower 2 bits (Y7,Y6)
+8134: 87      			add 	a,a 								; shift left three times
+8135: 87      			add 	a,a
+8136: 87      			add 	a,a
+8137: F640    			or 		$40 								; set bit 6, HL now points to VRAM.		
+8139: 67      			ld 		h,a 								; put it back in H.
+              	;
+              	;		copy font data to screen position.
+              	;
+              	;
+              	;		ld 		b,8 								; copy 8 characters
+              	
+813A: 1A      			ld 		a,(de)								; 0
+813B: 77      			ld 		(hl),a
+813C: 24      			inc 	h
+813D: 13      			inc 	de
+              	
+813E: 1A      			ld 		a,(de)								; 1
+813F: 77      			ld 		(hl),a
+8140: 24      			inc 	h
+8141: 13      			inc 	de
+              	
+8142: 1A      			ld 		a,(de)								; 2
+8143: 77      			ld 		(hl),a
+8144: 24      			inc 	h
+8145: 13      			inc 	de
+              	
+8146: 1A      			ld 		a,(de)								; 3
+8147: 77      			ld 		(hl),a
+8148: 24      			inc 	h
+8149: 13      			inc 	de
+              	
+814A: 1A      			ld 		a,(de)								; 4
+814B: 77      			ld 		(hl),a
+814C: 24      			inc 	h
+814D: 13      			inc 	de
+              	
+814E: 1A      			ld 		a,(de)								; 5
+814F: 77      			ld 		(hl),a
+8150: 24      			inc 	h
+8151: 13      			inc 	de
+              	
+8152: 1A      			ld 		a,(de)								; 6
+8153: 77      			ld 		(hl),a
+8154: 24      			inc 	h
+8155: 13      			inc 	de
+              	
+8156: 1A      			ld 		a,(de)								; 7
+8157: 77      			ld 		(hl),a
+8158: 24      			inc 	h
+8159: 13      			inc 	de
+              	
+815A: 2AF584  			ld 		hl,(IOCursorPosition)				; show cursor if we've just overwritten it
+815D: CBFE    			set 	7,(hl)
+              	
+815F:         	__wcexit:
+815F: E1      			pop 	hl 									; restore and exit
+8160: D1      			pop 	de
+8161: C1      			pop 	bc
+8162: F1      			pop 	af
+8163: C9      			ret
+              	
+              	
+              	;
+              	;		colour bit colours
+              	;
+8164:         	IOColours:
+8164: 42      			db 		$42 								; 00 (red)
+8165: 47      			db 		$47 								; 01 (white)
+8166: 44      			db 		$44 								; 10 (green)
+8167: 46      			db 		$46 								; 11 (yellow)
+              	
+              	; *********************************************************************************
+              	;
+              	;						Print HL as an ASCIIZ string
+              	;
+              	; *********************************************************************************
+              	
+8168:         	IOPrintASCIIZString:
+8168: F5      			push 	af
+8169: E5      			push 	hl
+816A:         	__IOASCIIZ:
+816A: 7E      			ld 		a,(hl)
+816B: B7      			or 		a
+816C: 2806    			jr 		z,__IOASCIIExit
+816E: CD7781  			call	IOPrintCharacter
+8171: 23      			inc 	hl
+8172: 18F6    			jr 		__IOASCIIZ
+8174:         	__IOASCIIExit:
+8174: E1      			pop 	hl
+8175: F1      			pop 	af
+8176: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;					Print 2+6 at cursor position and bump it
+              	;
+              	; *********************************************************************************
+              			
+8177:         	IOPrintCharacter:
+8177: F5      			push 	af
+8178: E5      			push 	hl
+8179: 2AF584  			ld 		hl,(IOCursorPosition)
+817C: E63F    			and 	$3F
+817E: F6C0    			or 		$C0
+8180: CDF280  			call 	IOWriteCharacter
+8183: 23      			inc 	hl
+8184: 7C      			ld 		a,h
+8185: E603    			and 	3
+8187: FE03    			cp 		3
+8189: 2003    			jr 		nz,__IOPCNotHome
+818B: 210000  			ld 		hl,0
+818E:         	__IOPCNotHome:
+818E: CDB380  			call	IOSetCursor
+8191: E1      			pop 	hl
+8192: F1      			pop 	af
+8193: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;									Print HL in hexadecimal
+              	;
+              	; *********************************************************************************
+              			
+8194:         	IOPrintHexWord:
+8194: F5      			push 	af
+8195: 7C      			ld 		a,h
+8196: CD9F81  			call 	IOPrintHexByte
+8199: 7D      			ld 		a,l
+819A: CD9F81  			call 	IOPrintHexByte
+819D: F1      			pop 	af
+819E: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;								Print A in hexadecimal
+              	;
+              	; *********************************************************************************
+              			
+819F:         	IOPrintHexByte:
+819F: F5      			push 	af
+81A0: CB0F    			rrc 	a
+81A2: CB0F    			rrc 	a
+81A4: CB0F    			rrc 	a
+81A6: CB0F    			rrc 	a
+81A8: CDAC81  			call 	__PrintNibble
+81AB: F1      			pop 	af
+81AC:         	__PrintNibble:
+81AC: E60F    			and 	15
+81AE: FE0A    			cp 		10
+81B0: 3802    			jr 		c,__PNIsDigit
+81B2: D639    			sub 	48+9
+81B4:         	__PNIsDigit:
+81B4: C670    			add 	48+$40
+81B6: C37781  			jp 		IOPrintCharacter
+              	
+              	; *********************************************************************************
+              	;
+              	;			Scan the keyboard, return currently pressed key code in A
+              	;
+              	; *********************************************************************************
+              	
+81B9:         	IOScanKeyboard:
+81B9: C5      			push 	bc
+81BA: D5      			push 	de
+81BB: E5      			push 	hl
+              	
+81BC: 210E82  			ld 		hl,__kr_no_shift_table 				; firstly identify shift state.
+              	
+81BF: 0EFE    			ld 		c,$FE 								; check CAPS SHIFT (emulator : left shift)
+81C1: 06FE    			ld 		b,$FE
+81C3: ED78    			in 		a,(c)
+81C5: CB47    			bit 	0,a
+81C7: 2005    			jr 		nz,__kr1
+81C9: 215E82  			ld 		hl,__kr_shift_table
+81CC: 180B    			jr 		__kr2
+81CE:         	__kr1:
+81CE: 067F    			ld 		b,$7F 								; check SYMBOL SHIFT (emulator : right shift)
+81D0: ED78    			in 		a,(c)
+81D2: CB4F    			bit 	1,a
+81D4: 2003    			jr 		nz,__kr2
+81D6: 213682  			ld 		hl,__kr_symbol_shift_table
+81D9:         	__kr2:
+              	
+81D9: 1EFE    			ld 		e,$FE 								; scan pattern.
+81DB: 7B      	__kr3:	ld 		a,e 								; work out the mask, so we don't detect shift keys
+81DC: 161E    			ld 		d,$1E 								; $FE row, don't check the least significant bit.
+81DE: FEFE    			cp 		$FE
+81E0: 2808    			jr 		z,___kr4
+81E2: 161D    			ld 		d,$01D 								; $7F row, don't check the 2nd least significant bit
+81E4: FE7F    			cp 		$7F
+81E6: 2802    			jr 		z,___kr4
+81E8: 161F    			ld 		d,$01F 								; check all bits.
+81EA:         	___kr4:
+81EA: 43      			ld 		b,e 								; scan the keyboard
+81EB: 0EFE    			ld 		c,$FE
+81ED: ED78    			in 		a,(c)
+81EF: 2F      			cpl 										; make that active high.
+81F0: A2      			and 	d  									; and with check value.
+81F1: 2011    			jr 		nz,__kr_keypressed 					; exit loop if key pressed.
+              	
+81F3: 23      			inc 	hl 									; next set of keyboard characters
+81F4: 23      			inc 	hl
+81F5: 23      			inc 	hl
+81F6: 23      			inc 	hl
+81F7: 23      			inc 	hl
+              	
+81F8: 7B      			ld 		a,e 								; get pattern
+81F9: 87      			add 	a,a 								; shift left
+81FA: F601    			or 		1 									; set bit 1.
+81FC: 5F      			ld 		e,a
+              	
+81FD: FEFF    			cp 		$FF 								; finished when all 1's.
+81FF: 20DA    			jr 		nz,__kr3 
+8201: AF      			xor 	a
+8202: 1806    			jr 		__kr_exit 							; no key found, return with zero.
+              	;
+8204:         	__kr_keypressed:
+8204: 23      			inc 	hl  								; shift right until carry set
+8205: 1F      			rra
+8206: 30FC    			jr 		nc,__kr_keypressed
+8208: 2B      			dec 	hl 									; undo the last inc hl
+8209: 7E      			ld 		a,(hl) 								; get the character number.
+820A:         	__kr_exit:
+820A: E1      			pop 	hl
+820B: D1      			pop 	de
+820C: C1      			pop 	bc
+820D: C9      			ret
+              	
+              	; *********************************************************************************
+              	;	 						Keyboard Mapping Tables
+              	; *********************************************************************************
+              	;
+              	;	$FEFE-$7FFE scan, bit 0-4, active low
+              	;
+              	;	8:Backspace 13:Return 16:19 colours 0-3 20-23:Left Down Up Right 
+              	;	27:Break 32-95: Std ASCII
+              	;
+820E:         	__kr_no_shift_table:
+820E: 005A5843			db 		0,  'Z','X','C','V',			'A','S','D','F','G'
+8212: 56415344	
+8216: 4647    	
+8218: 51574552			db 		'Q','W','E','R','T',			'1','2','3','4','5'
+821C: 54313233	
+8220: 3435    	
+8222: 30393837			db 		'0','9','8','7','6',			'P','O','I','U','Y'
+8226: 36504F49	
+822A: 5559    	
+822C: 0D4C4B4A			db 		13, 'L','K','J','H',			' ', 0, 'M','N','B'
+8230: 4820004D	
+8234: 4E42    	
+              	
+8236:         	__kr_symbol_shift_table:
+8236: 003A003F			db 		 0, ':', 0,  '?','/',			'~','|','\','{','}'
+823A: 2F7E7C5C	
+823E: 7B7D    	
+8240: 0000003C			db 		 0,  0,  0  ,'<','>',			'!','@','#','$','%'
+8244: 3E214023	
+8248: 2425    	
+824A: 5F292827			db 		'_',')','(',"'",'&',			'"',';', 0, ']','['
+824E: 26223B00	
+8252: 5D5B    	
+8254: 0D3D2B2D			db 		13, '=','+','-','^',			' ', 0, '.',',','*'
+8258: 5E20002E	
+825C: 2C2A    	
+              	
+825E:         	__kr_shift_table:
+825E: 003A003F			db 		0,  ':',0  ,'?','/',			'~','|','\','{','}'
+8262: 2F7E7C5C	
+8266: 7B7D    	
+8268: 0000003C			db 		0,  0,  0  ,'<','>',			'!','@','#','$','%'
+826C: 3E214023	
+8270: 2425    	
+8272: 08291716			db 		8, ')',23,  22, 21,				'"',';', 0, ']','['
+8276: 15223B00	
+827A: 5D5B    	
+827C: 1B3D2B2D			db 		27, '=','+','-','^',			' ', 0, '.',',','*'
+8280: 5E20002E	
+8284: 2C2A    	
+              			include "temp/words.asm"
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	;
+              	;		Name : 		core.asm
+              	;		Purpose : 	Core words
+              	;		Created : 	6th October 2018
+              	;
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	
+8286:         	__mzdefine_3b_2f_6d:
+              	; @macro ;
+8286: CD0680  	    call MacroExpansion
+8289: 01      	    db end__mzdefine_3b_2f_6d-__mzdefine_3b_2f_6d-4
+828A: C9      			ret
+              	; @endm
+828B:         	end__mzdefine_3b_2f_6d:
+              	
+828B:         	__mzdefine_2b_2f_6d:
+              	; @macro +
+828B: CD0680  	    call MacroExpansion
+828E: 01      	    db end__mzdefine_2b_2f_6d-__mzdefine_2b_2f_6d-4
+828F: 19      			add 	hl,de
+              	; @endm
+8290:         	end__mzdefine_2b_2f_6d:
+              	
+8290:         	__mzdefine_2e_68:
+              	; @word .h
+8290: 3E20    			ld 		a,' '
+8292: CD7781  			call 	IOPrintCharacter
+8295: C39481  			jp 		IOPrintHexWord
+              	
+8298:         	__mzdefine_30_3c:
+              	; @word 0<
+8298: CB7C    			bit 	7,h
+829A: 210000  			ld 		hl,0
+829D: C8      			ret 	z
+829E: 2B      			dec 	hl
+829F: C9      			ret
+              	
+82A0:         	__mzdefine_30_3d:
+              	; @word 0=
+82A0: 7C      			ld 		a,h
+82A1: B5      			or 		l
+82A2: 210000  			ld 		hl,0
+82A5: C0      			ret 	nz
+82A6: 2B      			dec 	hl
+82A7: C9      			ret
+              	
+82A8:         	__mzdefine_3c:
+              	; @word <
+82A8: 7C      			ld 		a,h
+82A9: AA      	        xor 	d
+82AA: FAB882  	        jp 		m,__LessSignsDifferent
+82AD: D5      	        push 	de
+82AE: EB      	        ex 		de,hl
+82AF: ED52    	        sbc 	hl,de
+82B1: D1      	        pop 	de
+82B2: 3808    	        jr 		c,__LessTrue
+82B4:         	__LessFalse:
+82B4: 210000  	        ld 		hl,$0000
+82B7: C9      	        ret
+82B8:         	__LessSignsDifferent:
+82B8: CB7A    			bit 	7,d
+82BA: 28F8    	        jr 		z,__LessFalse
+82BC:         	__LessTrue:
+82BC: 21FFFF  	        ld 		hl,$FFFF
+82BF: C9      	        ret
+82C0:         	__mzdefine_32_2f_2f_6d:
+              	; @macro 2/
+82C0: CD0680  	    call MacroExpansion
+82C3: 04      	    db end__mzdefine_32_2f_2f_6d-__mzdefine_32_2f_2f_6d-4
+82C4: CB2C    			sra 	h
+82C6: CB1D    			rr 		l
+              	; @endm
+82C8:         	end__mzdefine_32_2f_2f_6d:
+              	
+82C8:         	__mzdefine_61_62_3e_72_2f_6d:
+              	; @macro ab>r
+82C8: CD0680  	    call MacroExpansion
+82CB: 02      	    db end__mzdefine_61_62_3e_72_2f_6d-__mzdefine_61_62_3e_72_2f_6d-4
+82CC: D5      			push 	de
+82CD: E5      			push 	hl
+              	; @endm
+82CE:         	end__mzdefine_61_62_3e_72_2f_6d:
+              	
+82CE:         	__mzdefine_72_3e_61_62_2f_6d:
+              	; @macro r>ab
+82CE: CD0680  	    call MacroExpansion
+82D1: 02      	    db end__mzdefine_72_3e_61_62_2f_6d-__mzdefine_72_3e_61_62_2f_6d-4
+82D2: E1      			pop 	hl
+82D3: D1      			pop 	de
+              	; @endm
+82D4:         	end__mzdefine_72_3e_61_62_2f_6d:
+              	
+82D4:         	__mzdefine_61_3e_72_2f_6d:
+              	; @macro a>r
+82D4: CD0680  	    call MacroExpansion
+82D7: 01      	    db end__mzdefine_61_3e_72_2f_6d-__mzdefine_61_3e_72_2f_6d-4
+82D8: E5      			push 	hl
+              	; @endm
+82D9:         	end__mzdefine_61_3e_72_2f_6d:
+              	
+82D9:         	__mzdefine_62_3e_72_2f_6d:
+              	; @macro b>r
+82D9: CD0680  	    call MacroExpansion
+82DC: 01      	    db end__mzdefine_62_3e_72_2f_6d-__mzdefine_62_3e_72_2f_6d-4
+82DD: D5      			push 	de
+              	; @endm
+82DE:         	end__mzdefine_62_3e_72_2f_6d:
+              	
+82DE:         	__mzdefine_72_3e_61_2f_6d:
+              	; @macro r>a
+82DE: CD0680  	    call MacroExpansion
+82E1: 01      	    db end__mzdefine_72_3e_61_2f_6d-__mzdefine_72_3e_61_2f_6d-4
+82E2: E1      			pop 	hl
+              	; @endm
+82E3:         	end__mzdefine_72_3e_61_2f_6d:
+              	
+82E3:         	__mzdefine_72_3e_62_2f_6d:
+              	; @macro r>b
+82E3: CD0680  	    call MacroExpansion
+82E6: 01      	    db end__mzdefine_72_3e_62_2f_6d-__mzdefine_72_3e_62_2f_6d-4
+82E7: D1      			pop 	de
+              	; @endm
+82E8:         	end__mzdefine_72_3e_62_2f_6d:
+              	
+82E8:         	__mzdefine_63_21_2f_6d:
+              	; @macro c!
+82E8: CD0680  	    call MacroExpansion
+82EB: 01      	    db end__mzdefine_63_21_2f_6d-__mzdefine_63_21_2f_6d-4
+82EC: 73      			ld 		(hl),e
+              	; @endm
+82ED:         	end__mzdefine_63_21_2f_6d:
+              	
+82ED:         	__mzdefine_21_2f_6d:
+              	; @macro !
+82ED: CD0680  	    call MacroExpansion
+82F0: 04      	    db end__mzdefine_21_2f_6d-__mzdefine_21_2f_6d-4
+82F1: 73      			ld 		(hl),e
+82F2: 23      			inc 	hl
+82F3: 72      			ld 		(hl),d
+82F4: 2B      			dec 	hl
+              	; @endm
+82F5:         	end__mzdefine_21_2f_6d:
+              	
+82F5:         	__mzdefine_63_40_2f_6d:
+              	; @macro c@
+82F5: CD0680  	    call MacroExpansion
+82F8: 03      	    db end__mzdefine_63_40_2f_6d-__mzdefine_63_40_2f_6d-4
+82F9: 6E      			ld 		l,(hl)
+82FA: 2600    			ld 		h,0
+              	; @endm
+82FC:         	end__mzdefine_63_40_2f_6d:
+              	
+82FC:         	__mzdefine_40_2f_6d:
+              	; @macro @
+82FC: CD0680  	    call MacroExpansion
+82FF: 04      	    db end__mzdefine_40_2f_6d-__mzdefine_40_2f_6d-4
+8300: 7E      			ld 		a,(hl)
+8301: 23      			inc 	hl
+8302: 66      			ld 		h,(hl)
+8303: 6F      			ld 		l,a
+              	; @endm
+8304:         	end__mzdefine_40_2f_6d:
+              	
+8304:         	__mzdefine_63_6c_72_2e_73_63_72_65_65_6e:
+              	; @word clr.screen
+8304: C3D180  			jp 		IOClearScreen
+              	
+8307:         	__mzdefine_63_75_72_73_6f_72_21:
+              	; @word cursor!
+8307: C3B380  			jp 		IOSetCursor
+              	
+830A:         	__mzdefine_64_65_62_75_67:
+              	; @word debug
+830A: C32780  			jp 		DebugCode
+              	
+830D:         	__mzdefine_68_61_6c_74:
+              	; @word halt
+830D: C32380  			jp 		HaltCode
+              	
+8310:         	__mzdefine_69_6e_6b_65_79:
+              	; @word inkey
+8310: CDB981  			call	IOScanKeyboard
+8313: EB      			ex 		de,hl
+8314: 6F      			ld 		l,a
+8315: 2600    			ld 		h,0
+8317: C9      			ret
+              	
+8318:         	__mzdefine_6e_61_6e_64:
+              	; @word nand
+8318: 7C      			ld 		a,h
+8319: A2      			and 	d
+831A: 2F      			cpl
+831B: 67      			ld 		h,a
+831C: 7D      			ld 		a,l
+831D: A3      			and 	e
+831E: 2F      			cpl
+831F: 6F      			ld 		l,a
+8320: C9      			ret
+              	
+8321:         	__mzdefine_70_6f_72_74_40:
+              	; @word port@
+8321: 44      			ld 		b,h
+8322: 4D      			ld 		c,l
+8323: ED68    			in 		l,(c)
+8325: 2600    			ld 		h,0
+              	
+8327:         	__mzdefine_70_6f_72_74_21:
+              	; @word port!
+8327: 44      			ld 		b,h
+8328: 4D      			ld 		c,l
+8329: ED59    			out 	(c),e
+              	
+832B:         	__mzdefine_61_3e_62_2f_6d:
+              	; @macro a>b
+832B: CD0680  	    call MacroExpansion
+832E: 02      	    db end__mzdefine_61_3e_62_2f_6d-__mzdefine_61_3e_62_2f_6d-4
+832F: 54      			ld 		d,h
+8330: 5D      			ld		e,l
+              	; @endm
+8331:         	end__mzdefine_61_3e_62_2f_6d:
+              	
+8331:         	__mzdefine_62_3e_61_2f_6d:
+              	; @macro b>a
+8331: CD0680  	    call MacroExpansion
+8334: 02      	    db end__mzdefine_62_3e_61_2f_6d-__mzdefine_62_3e_61_2f_6d-4
+8335: 62      			ld 		h,d
+8336: 6B      			ld		l,e
+              	; @endm
+8337:         	end__mzdefine_62_3e_61_2f_6d:
+              	
+8337:         	__mzdefine_73_63_72_65_65_6e_21:
+              	; @word screen!
+8337: 7B      			ld 		a,e
+8338: C3F280  			jp 		IOWriteCharacter
+              	
+833B:         	__mzdefine_73_77_61_70_2f_6d:
+              	; @macro swap
+833B: CD0680  	    call MacroExpansion
+833E: 01      	    db end__mzdefine_73_77_61_70_2f_6d-__mzdefine_73_77_61_70_2f_6d-4
+833F: EB      			ex 		de,hl
+              	; @endm
+8340:         	end__mzdefine_73_77_61_70_2f_6d:
+              	
+8340:         	__mzdefine_73_79_73_2e_69_6e_66_6f:
+              	; @word sys.info
+8340: EB      			ex 		de,hl
+8341: 21F984  			ld 		hl,SystemInformation
+8344: C9      			ret
+              	
+8345:         	__mzdefine_76_61_6c_69_64_61_74_65:
+              	; @word validate
+8345: EB      			ex 		de,hl
+8346: 7C      			ld 		a,h
+8347: BA      			cp 		d
+8348: 200C    			jr 		nz,__validate_fail
+834A: 7D      			ld 		a,l
+834B: BB      			cp 		e
+834C: 2008    			jr 		nz,__validate_fail
+834E: 3E20    			ld 		a,' '
+8350: CD7781  			call	IOPrintCharacter
+8353: C39481  			jp 		IOPrintHexWord
+8356:         	__validate_fail:
+8356: CD2780  			call 	DebugCode
+8359: C32380  			jp 		HaltCode
+              	
+835C:         	__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d:
+              	; @macro wordsize*
+835C: CD0680  	    call MacroExpansion
+835F: 01      	    db end__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d-__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d-4
+8360: 29      			add 	hl,hl
+              	; @endm
+8361:         	end__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d:
+              	
+8361:         	__mzdefine_2a:
+              	; @word *
+8361: C36E80  			jp	 	MULTMultiply16
+              	
+8364:         	__mzdefine_2f:
+              	; @word /
+8364: D5      			push 	de
+8365: CD8880  			call 	DIVDivideMod16
+8368: EB      			ex 		de,hl
+8369: D1      			pop 	de
+836A: C9      			ret
+              	
+836B:         	__mzdefine_6d_6f_64:
+              	; @word mod
+836B: D5      			push 	de
+836C: CD8880  			call 	DIVDivideMod16
+836F: D1      			pop 	de
+8370: C9      			ret
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		datatransfer.asm
+              	;		Purpose : 	Copy and Fill routines
+              	;		Date : 		3rd October 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+              	; ========================================================================================================
+              	;								Set the count value for data transfer
+              	; ========================================================================================================
+              	
+8371:         	__mzdefine_63_6f_75_6e_74_21:
+              	; @word 		count!
+8371: 228985  			ld 		(DataTransferCount),hl
+8374: C9      			ret
+              	
+              	; ========================================================================================================
+              	;								Fill [Count] bytes with A starting at B
+              	; ========================================================================================================
+              	
+8375:         	__mzdefine_66_69_6c_6c:
+              	; @word 		fill
+              	
+8375: ED4B8985			ld 		bc,(DataTransferCount)
+8379: 78      			ld 		a,b
+837A: B1      			or 		c
+837B: C8      			ret 	z
+              	
+837C: C5      			push 	bc
+837D: E5      			push 	hl
+              	
+837E: 73      	__fill1:ld 		(hl),e
+              	
+837F: 23      			inc 	hl
+8380: 0B      			dec 	bc
+8381: 78      			ld 		a,b
+8382: B1      			or 		c
+8383: 20F9    			jr 		nz,__fill1
+              	
+8385: E1      			pop 	hl
+8386: C1      			pop 	bc
+8387: C9      			ret
+              	
+              	; ========================================================================================================
+              	;											Copy [Count] bytes from B to A
+              	; ========================================================================================================
+              	
+8388:         	__mzdefine_63_6f_70_79:
+              	; @word 		copy
+              	
+8388: C5      			push 	bc
+8389: D5      			push 	de
+838A: E5      			push 	hl
+              	
+838B: ED4B8985			ld 		bc,(DataTransferCount)
+838F: 78      			ld 		a,b 								; exit now if count zero.
+8390: B1      			or 		c
+8391: 280C    			jr 		z,__copyExit
+              	
+8393: AF      			xor 	a 									; find direction.
+8394: ED52    			sbc 	hl,de
+8396: 7C      			ld 		a,h
+8397: 19      			add 	hl,de
+8398: CB7F    			bit 	7,a 								; if +ve use LDDR
+839A: 2807    			jr 		z,__copy2
+              	
+839C: EB      			ex 		de,hl 								; LDIR etc do (DE) <- (HL)
+839D: EDB0    			ldir
+839F:         	__copyExit:
+839F: E1      			pop 	hl
+83A0: D1      			pop 	de
+83A1: C1      			pop 	bc
+83A2: C9      			ret
+              	
+83A3:         	__copy2:
+              	;		db 		$DD,$01
+83A3: 09      			add 	hl,bc 								; add length to HL,DE, swap as LDDR does (DE) <- (HL)
+83A4: EB      			ex 		de,hl
+83A5: 09      			add 	hl,bc
+83A6: 1B      			dec 	de 									; -1 to point to last byte
+83A7: 2B      			dec 	hl
+83A8: EDB8    			lddr
+83AA: 18F3    			jr 		__copyExit
+              	
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	;
+              	;		Name : 		paging.asm
+              	;		Purpose : 	Paging code.
+              	;		Created : 	6th October 2018
+              	;
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	
+              	; ***********************************************************************************************
+              	;
+              	;										Reset Paging
+              	;
+              	; ***********************************************************************************************
+              	
+83AC:         	PAGEReset:
+83AC: F5      			push 	af
+83AD: E5      			push 	hl
+              	
+83AE: 21ED84  			ld 		hl,PAGEStack 						; reset the page stack pointer
+83B1: 22EB84  			ld 		(PAGEStackPointer),hl
+83B4: 3E22    			ld 		a,FirstCodePage 					; this is the default code page
+83B6: ED9256  			db 		$ED,$92,$56							; set that as the current page
+83B9: 3C      			inc 	a
+83BA: ED9257  			db 		$ED,$92,$57
+83BD: 3D      			dec 	a
+83BE: 08      			ex 		af,af' 								; put it in the A' register as 'current page'
+              	
+83BF: E1      			pop 	hl
+83C0: F1      			pop 	af
+83C1: C9      			ret
+              	
+              	; ***********************************************************************************************
+              	;
+              	;							Switch page to A and push old page on stack.
+              	;
+              	; ***********************************************************************************************
+              	
+83C2:         	__mzdefine_70_61_67_65_2e_73_77_69_74_63_68:
+              	; @word 	page.switch
+              	
+83C2:         	PAGESwitch:
+83C2: F5      			push 	af
+83C3: C5      			push 	bc
+83C4: D5      			push 	de
+83C5: E5      			push 	hl
+              	
+83C6: 013B24  			ld 		bc,$243B 							; TB Register select
+83C9: 1656    			ld 		d,$56 								; $56 is paging register $C000-$DFFF
+83CB: ED51    			out 	(c),d
+83CD: 013B25  			ld 		bc,$253B 							; TB Register access
+83D0: ED58    			in 		e,(c) 								; read old page into E
+              	
+83D2: ED9256  			db 		$ED,$92,$56							; Page in the new page at $C000-$DFFF
+83D5: 3C      			inc 	a
+83D6: ED9257  			db 		$ED,$92,$57							; and into $E000-$FFFF
+83D9: 3D      			dec 	a
+              	
+83DA: 2AEB84  			ld 		hl,(PAGEStackPointer)				; push old register on page stack.
+83DD: 73      			ld 		(hl),e
+83DE: 23      			inc 	hl
+83DF: 22EB84  			ld 		(PAGEStackPointer),hl
+              	
+83E2: 08      			ex 		af,af'  							; update A'
+              	
+83E3: E1      			pop 	hl 									; restore registers and exit.
+83E4: D1      			pop 	de
+83E5: C1      			pop 	bc
+83E6: F1      			pop 	af
+83E7: C9      			ret
+              	
+              	; ***********************************************************************************************
+              	;
+              	;							Restore previous page (undoes PAGESwitch)
+              	;
+              	; ***********************************************************************************************
+              	
+83E8:         	__mzdefine_70_61_67_65_2e_72_65_73_74_6f_72_65:
+              	; @word 	page.restore
+              	
+83E8:         	PAGERestore:
+83E8: F5      			push 	af
+83E9: E5      			push 	hl
+              	
+83EA: 2AEB84  			ld 		hl,(PAGEStackPointer) 				; pop old page register value off stack
+83ED: 2B      			dec 	hl
+83EE: 7E      			ld 		a,(hl)
+83EF: 22EB84  			ld 		(PAGEStackPointer),hl
+              	
+83F2: ED9256  			db 		$ED,$92,$56							; Page in the new page at $C000-$DFFF
+83F5: 3C      			inc 	a
+83F6: ED9257  			db 		$ED,$92,$57 						; and into $E000-$FFFF
+83F9: 3D      			dec 	a
+83FA: 08      			ex 		af,af' 								; update A'
+              	
+83FB: E1      			pop 	hl
+83FC: F1      			pop 	af
+83FD: C9      			ret
+              	
+              	; ***********************************************************************************************
+              	;
+              	;									Page switch routines.
+              	;
+              	; ***********************************************************************************************
+              	
+              	PageCall: 	macro basePage
+              			ld 		a,&basePage 						; A is the page number to switch to.
+              			db 		$ED,$91,$57,&basePage+1				; switch the $E000-$FFFF to the next page
+              			jp 		PAGECallCommon 						; execute the common code (follows)
+              	endm
+              	
+83FE:         	PAGECallCommon:
+83FE: ED9256  			db 		$ED,$92,$56							; set the $C000-$DFFF page to the macro parameter now in A
+8401: 08      			ex 		af,af' 								; get the previous page into A, set the current page in A'
+8402: F5      			push 	af 									; save previous page on the stack
+8403: CD1184  			call 	PAGECallBC 							; call the code at BC
+8406: F1      			pop 	af 									; get the previous page back off the stack
+8407: ED9256  			db 		$ED,$92,$56							; set the page registers up with that value
+840A: 3C      			inc 	a
+840B: ED9257  			db 		$ED,$92,$57
+840E: 3D      			dec 	a 									; A is the value that was popped
+840F: 08      			ex 		af,af' 								; and copy the value into A'
+8410: C9      			ret 										; and return to caller.
+              	
+8411:         	PAGECallBC:
+8411: C5      			push 	bc
+8412: C9      			ret
+              	
+              	; ***********************************************************************************************
+              	;
+              	;							Table of Page Switch codes, 1 per pair of pages
+              	;
+              	; ***********************************************************************************************
+              	
+              	
+8413:         	PageSwitchTable:
+              			PageCall 	$20
+8413: 3E20    			ld 		a,$20 						; A is the page number to switch to.
+8415: ED915721			db 		$ED,$91,$57,$20+1				; switch the $E000-$FFFF to the next page
+8419: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+841C:         	PageSwitchSecondElement:
+              			PageCall 	$22
+841C: 3E22    			ld 		a,$22 						; A is the page number to switch to.
+841E: ED915723			db 		$ED,$91,$57,$22+1				; switch the $E000-$FFFF to the next page
+8422: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+8425:         	PageSwitchThirdElement:
+              			PageCall 	$24
+8425: 3E24    			ld 		a,$24 						; A is the page number to switch to.
+8427: ED915725			db 		$ED,$91,$57,$24+1				; switch the $E000-$FFFF to the next page
+842B: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$26
+842E: 3E26    			ld 		a,$26 						; A is the page number to switch to.
+8430: ED915727			db 		$ED,$91,$57,$26+1				; switch the $E000-$FFFF to the next page
+8434: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$28
+8437: 3E28    			ld 		a,$28 						; A is the page number to switch to.
+8439: ED915729			db 		$ED,$91,$57,$28+1				; switch the $E000-$FFFF to the next page
+843D: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$2A
+8440: 3E2A    			ld 		a,$2A 						; A is the page number to switch to.
+8442: ED91572B			db 		$ED,$91,$57,$2A+1				; switch the $E000-$FFFF to the next page
+8446: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$2C
+8449: 3E2C    			ld 		a,$2C 						; A is the page number to switch to.
+844B: ED91572D			db 		$ED,$91,$57,$2C+1				; switch the $E000-$FFFF to the next page
+844F: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$2E
+8452: 3E2E    			ld 		a,$2E 						; A is the page number to switch to.
+8454: ED91572F			db 		$ED,$91,$57,$2E+1				; switch the $E000-$FFFF to the next page
+8458: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              	
+              			PageCall 	$30
+845B: 3E30    			ld 		a,$30 						; A is the page number to switch to.
+845D: ED915731			db 		$ED,$91,$57,$30+1				; switch the $E000-$FFFF to the next page
+8461: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$32
+8464: 3E32    			ld 		a,$32 						; A is the page number to switch to.
+8466: ED915733			db 		$ED,$91,$57,$32+1				; switch the $E000-$FFFF to the next page
+846A: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$34
+846D: 3E34    			ld 		a,$34 						; A is the page number to switch to.
+846F: ED915735			db 		$ED,$91,$57,$34+1				; switch the $E000-$FFFF to the next page
+8473: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$36
+8476: 3E36    			ld 		a,$36 						; A is the page number to switch to.
+8478: ED915737			db 		$ED,$91,$57,$36+1				; switch the $E000-$FFFF to the next page
+847C: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$38
+847F: 3E38    			ld 		a,$38 						; A is the page number to switch to.
+8481: ED915739			db 		$ED,$91,$57,$38+1				; switch the $E000-$FFFF to the next page
+8485: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$3A
+8488: 3E3A    			ld 		a,$3A 						; A is the page number to switch to.
+848A: ED91573B			db 		$ED,$91,$57,$3A+1				; switch the $E000-$FFFF to the next page
+848E: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$3C
+8491: 3E3C    			ld 		a,$3C 						; A is the page number to switch to.
+8493: ED91573D			db 		$ED,$91,$57,$3C+1				; switch the $E000-$FFFF to the next page
+8497: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$3E
+849A: 3E3E    			ld 		a,$3E 						; A is the page number to switch to.
+849C: ED91573F			db 		$ED,$91,$57,$3E+1				; switch the $E000-$FFFF to the next page
+84A0: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              	
+              			PageCall 	$40
+84A3: 3E40    			ld 		a,$40 						; A is the page number to switch to.
+84A5: ED915741			db 		$ED,$91,$57,$40+1				; switch the $E000-$FFFF to the next page
+84A9: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$42
+84AC: 3E42    			ld 		a,$42 						; A is the page number to switch to.
+84AE: ED915743			db 		$ED,$91,$57,$42+1				; switch the $E000-$FFFF to the next page
+84B2: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$44
+84B5: 3E44    			ld 		a,$44 						; A is the page number to switch to.
+84B7: ED915745			db 		$ED,$91,$57,$44+1				; switch the $E000-$FFFF to the next page
+84BB: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$46
+84BE: 3E46    			ld 		a,$46 						; A is the page number to switch to.
+84C0: ED915747			db 		$ED,$91,$57,$46+1				; switch the $E000-$FFFF to the next page
+84C4: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$48
+84C7: 3E48    			ld 		a,$48 						; A is the page number to switch to.
+84C9: ED915749			db 		$ED,$91,$57,$48+1				; switch the $E000-$FFFF to the next page
+84CD: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$4A
+84D0: 3E4A    			ld 		a,$4A 						; A is the page number to switch to.
+84D2: ED91574B			db 		$ED,$91,$57,$4A+1				; switch the $E000-$FFFF to the next page
+84D6: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$4C
+84D9: 3E4C    			ld 		a,$4C 						; A is the page number to switch to.
+84DB: ED91574D			db 		$ED,$91,$57,$4C+1				; switch the $E000-$FFFF to the next page
+84DF: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              			PageCall 	$4E
+84E2: 3E4E    			ld 		a,$4E 						; A is the page number to switch to.
+84E4: ED91574F			db 		$ED,$91,$57,$4E+1				; switch the $E000-$FFFF to the next page
+84E8: C3FE83  			jp 		PAGECallCommon 						; execute the common code (follows)
+              	
+              	
+              	
+              	; ***************************************************************************************
+              	;
+              	;								Data Area
+              	;
+              	; ***************************************************************************************
+              	
+              			include "support/data.asm"
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	;
+              	;		Name : 		data.asm
+              	;		Purpose : 	All Read/Write data in the library mdoules
+              	;		Author :	Paul Robson (paul@robsons.org.uk)
+              	;		Created : 	2nd October 2018
+              	;
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	
+84EB:         	PAGEStackPointer:									; paging undo stack pointer
+84EB: 0000    			dw 		0
+84ED:         	PAGEStack: 											; paging undo stack.
+84ED: 00000000			dw 		0,0,0,0
+84F1: 00000000	
+              	
+84F5:         	IOCursorPosition: 									; cursor position in charactes
+84F5: 0000    			dw 		0
+              	
+84F7:         	StackInitialValue:									; Z80 Stack Space
+84F7: 0000    			dw 		0
+              			
+              	
+              	; ***************************************************************************************
+              	;
+              	;								System Information Table
+              	;
+              	; ***************************************************************************************
+              	
+84F9:         	SystemInformation:
+              	
+84F9:         	SICodeFree:
+84F9: 8B85    			dw 		FreeMemory 							; +0,+1 		Address of next free code byte
+84FB:         	SICodePageFree:
+84FB: 22      			db		FirstCodePage 						; +2 			Code Page of next free code byte
+84FC:         	SIDictionaryPage:
+84FC: 20      			db 		DictionaryPage						; +3 			Code Page of dictionary
+84FD:         	SIDictionaryFree:
+84FD: 00C0    			dw 		$C000 								; +4,+5 		Next free byte in dictionary
+84FF:         	SIBootProgramAddress:
+84FF: 2380    			dw		HaltCode 							; +6,+7 		Code to execute when starting
+8501:         	SIBootProgramPage:
+8501: 22      			db 		FirstCodePage 						; +8 			Code page of startup program
+8502:         	SIStackResetValue:
+8502: 8785    			dw 		StackResetValue 					; +9,+10 		Initial Z80 Stack
+              	
+8504: 1384    			dw 		PageSwitchTable						; +11,+12 		Page Switch routine (for $20/1)
+8506: 09      			db 		PageSwitchSecondElement-PageSwitchTable
+              														; +13 			Gap between each routine.
+8507: FFFFFFFF			ds		128
+850B: FF...   	
+8587:         	StackResetValue:
+8587: 0000    			dw 		0
+              	
+8589:         	DataTransferCount:									; count of bytes to fill/copy
+8589: 0000    			dw 		0
+              			
+858B:         	FreeMemory:
+              	
+858B: FFFFFFFF			org 	$C000 								; first switchable page, e.g. the dictionary
+858F: FF...   	
+C000: 00      			db 		0 									; first dictionary offset.
+C001: FFFFFFFF			org 	$10000 								; make sure it's all there.
+C005: FF...   	
+
+
+; +++ segments +++
+
+#CODE          = $8000 = 32768,  size = $8000 = 32768
+
+; +++ global symbols +++
+
+Boot                               = $8008 = 32776          kernel.asm:36
+DIVDivideMod16                     = $8088 = 32904          divide.asm:18
+DataTransferCount                  = $8589 = 34185          kernel.asm:103
+DebugCode                          = $8027 = 32807          debug.asm:12
+DictionaryPage                     = $0020 =    32          kernel.asm:12
+Div16_Loop1                        = $8092 = 32914          divide.asm:27
+Div16_Loop2                        = $80A3 = 32931          divide.asm:41
+Div16_NoAdd1                       = $809A = 32922          divide.asm:33
+Div16_NoAdd2                       = $80AB = 32939          divide.asm:47
+FirstCodePage                      = $0022 =    34          kernel.asm:13
+FreeMemory                         = $858B = 34187          kernel.asm:106
+HaltCode                           = $8023 = 32803          kernel.asm:48
+IOClearScreen                      = $80D1 = 32977          hardware.asm:46
+IOColours                          = $8164 = 33124          hardware.asm:200
+IOCursorPosition                   = $84F5 = 34037          data.asm:17
+IOPrintASCIIZString                = $8168 = 33128          hardware.asm:212 (unused)
+IOPrintCharacter                   = $8177 = 33143          hardware.asm:233
+IOPrintHexByte                     = $819F = 33183          hardware.asm:273
+IOPrintHexWord                     = $8194 = 33172          hardware.asm:258
+IOScanKeyboard                     = $81B9 = 33209          hardware.asm:296
+IOSetCursor                        = $80B3 = 32947          hardware.asm:19
+IOWriteCharacter                   = $80F2 = 33010          hardware.asm:75
+LastCodePage                       = $004E =    78          kernel.asm:14 (unused)
+MULTMultiply16                     = $806E = 32878          multiply.asm:18
+MacroExpansion                     = $8006 = 32774          kernel.asm:26
+PAGECallBC                         = $8411 = 33809          words.asm:507
+PAGECallCommon                     = $83FE = 33790          words.asm:494
+PAGEReset                          = $83AC = 33708          words.asm:398
+PAGERestore                        = $83E8 = 33768          words.asm:463 (unused)
+PAGEStack                          = $84ED = 34029          data.asm:14
+PAGEStackPointer                   = $84EB = 34027          data.asm:12
+PAGESwitch                         = $83C2 = 33730          words.asm:424
+PageSwitchSecondElement            = $841C = 33820          words.asm:520
+PageSwitchTable                    = $8413 = 33811          words.asm:518
+PageSwitchThirdElement             = $8425 = 33829          words.asm:522 (unused)
+SIBootProgramAddress               = $84FF = 34047          kernel.asm:89
+SIBootProgramPage                  = $8501 = 34049          kernel.asm:91
+SICodeFree                         = $84F9 = 34041          kernel.asm:81 (unused)
+SICodePageFree                     = $84FB = 34043          kernel.asm:83 (unused)
+SIDictionaryFree                   = $84FD = 34045          kernel.asm:87 (unused)
+SIDictionaryPage                   = $84FC = 34044          kernel.asm:85 (unused)
+SIStackResetValue                  = $8502 = 34050          kernel.asm:93
+StackInitialValue                  = $84F7 = 34039          data.asm:20 (unused)
+StackResetValue                    = $8587 = 34183          kernel.asm:100
+SystemInformation                  = $84F9 = 34041          kernel.asm:79
+__Core__Mult_Loop                  = $8075 = 32885          multiply.asm:24
+__Core__Mult_Shift                 = $807A = 32890          multiply.asm:28
+__DisplayHexByte                   = $8055 = 32853          debug.asm:46
+__DisplayHexInteger                = $8045 = 32837          debug.asm:36
+__DisplayHexNibble                 = $805E = 32862          debug.asm:54
+__DisplayIntCh                     = $8066 = 32870          debug.asm:59
+__IOASCIIExit                      = $8174 = 33140          hardware.asm:222
+__IOASCIIZ                         = $816A = 33130          hardware.asm:215
+__IOPCNotHome                      = $818E = 33166          hardware.asm:246
+__LessFalse                        = $82B4 = 33460          words.asm:60
+__LessSignsDifferent               = $82B8 = 33464          words.asm:63
+__LessTrue                         = $82BC = 33468          words.asm:66
+__PNIsDigit                        = $81B4 = 33204          hardware.asm:286
+__PrintNibble                      = $81AC = 33196          hardware.asm:281
+___kr4                             = $81EA = 33258          hardware.asm:327
+__copy2                            = $83A3 = 33699          words.asm:372
+__copyExit                         = $839F = 33695          words.asm:366
+__cs1                              = $80D6 = 32982          hardware.asm:50
+__cs2                              = $80DE = 32990          hardware.asm:55
+__fill1                            = $837E = 33662          words.asm:329
+__kr1                              = $81CE = 33230          hardware.asm:310
+__kr2                              = $81D9 = 33241          hardware.asm:316
+__kr3                              = $81DB = 33243          hardware.asm:319
+__kr_exit                          = $820A = 33290          hardware.asm:357
+__kr_keypressed                    = $8204 = 33284          hardware.asm:351
+__kr_no_shift_table                = $820E = 33294          hardware.asm:372
+__kr_shift_table                   = $825E = 33374          hardware.asm:384
+__kr_symbol_shift_table            = $8236 = 33334          hardware.asm:378
+__mzdefine_21_2f_6d                = $82ED = 33517          words.asm:136
+__mzdefine_2a                      = $8361 = 33633          words.asm:277 (unused)
+__mzdefine_2b_2f_6d                = $828B = 33419          words.asm:19
+__mzdefine_2e_68                   = $8290 = 33424          words.asm:27 (unused)
+__mzdefine_2f                      = $8364 = 33636          words.asm:281 (unused)
+__mzdefine_30_3c                   = $8298 = 33432          words.asm:33 (unused)
+__mzdefine_30_3d                   = $82A0 = 33440          words.asm:41 (unused)
+__mzdefine_32_2f_2f_6d             = $82C0 = 33472          words.asm:69
+__mzdefine_3b_2f_6d                = $8286 = 33414          words.asm:11
+__mzdefine_3c                      = $82A8 = 33448          words.asm:50 (unused)
+__mzdefine_40_2f_6d                = $82FC = 33532          words.asm:156
+__mzdefine_61_3e_62_2f_6d          = $832B = 33579          words.asm:216
+__mzdefine_61_3e_72_2f_6d          = $82D4 = 33492          words.asm:96
+__mzdefine_61_62_3e_72_2f_6d       = $82C8 = 33480          words.asm:78
+__mzdefine_62_3e_61_2f_6d          = $8331 = 33585          words.asm:225
+__mzdefine_62_3e_72_2f_6d          = $82D9 = 33497          words.asm:104
+__mzdefine_63_21_2f_6d             = $82E8 = 33512          words.asm:128
+__mzdefine_63_40_2f_6d             = $82F5 = 33525          words.asm:147
+__mzdefine_63_6c_72_2e_73_63_72_65_65_6e = $8304 = 33540          words.asm:167 (unused)
+__mzdefine_63_6f_70_79             = $8388 = 33672          words.asm:345 (unused)
+__mzdefine_63_6f_75_6e_74_21       = $8371 = 33649          words.asm:309 (unused)
+__mzdefine_63_75_72_73_6f_72_21    = $8307 = 33543          words.asm:171 (unused)
+__mzdefine_64_65_62_75_67          = $830A = 33546          words.asm:175 (unused)
+__mzdefine_66_69_6c_6c             = $8375 = 33653          words.asm:318 (unused)
+__mzdefine_68_61_6c_74             = $830D = 33549          words.asm:179 (unused)
+__mzdefine_69_6e_6b_65_79          = $8310 = 33552          words.asm:183 (unused)
+__mzdefine_6d_6f_64                = $836B = 33643          words.asm:289 (unused)
+__mzdefine_6e_61_6e_64             = $8318 = 33560          words.asm:191 (unused)
+__mzdefine_70_61_67_65_2e_72_65_73_74_6f_72_65 = $83E8 = 33768          words.asm:460 (unused)
+__mzdefine_70_61_67_65_2e_73_77_69_74_63_68 = $83C2 = 33730          words.asm:421 (unused)
+__mzdefine_70_6f_72_74_21          = $8327 = 33575          words.asm:210 (unused)
+__mzdefine_70_6f_72_74_40          = $8321 = 33569          words.asm:203 (unused)
+__mzdefine_72_3e_61_2f_6d          = $82DE = 33502          words.asm:112
+__mzdefine_72_3e_61_62_2f_6d       = $82CE = 33486          words.asm:87
+__mzdefine_72_3e_62_2f_6d          = $82E3 = 33507          words.asm:120
+__mzdefine_73_63_72_65_65_6e_21    = $8337 = 33591          words.asm:234 (unused)
+__mzdefine_73_77_61_70_2f_6d       = $833B = 33595          words.asm:239
+__mzdefine_73_79_73_2e_69_6e_66_6f = $8340 = 33600          words.asm:247 (unused)
+__mzdefine_76_61_6c_69_64_61_74_65 = $8345 = 33605          words.asm:253 (unused)
+__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d = $835C = 33628          words.asm:269
+__scexit                           = $80C9 = 32969          hardware.asm:33
+__validate_fail                    = $8356 = 33622          words.asm:265
+__wc2                              = $8125 = 33061          hardware.asm:120
+__wcexit                           = $815F = 33119          hardware.asm:189
+_end                               = $0000 = 65536          kernel.asm:21 (unused)
+_size                              = $8000 = 32768          kernel.asm:21 (unused)
+end__mzdefine_21_2f_6d             = $82F5 = 33525          words.asm:145
+end__mzdefine_2b_2f_6d             = $8290 = 33424          words.asm:25
+end__mzdefine_32_2f_2f_6d          = $82C8 = 33480          words.asm:76
+end__mzdefine_3b_2f_6d             = $828B = 33419          words.asm:17
+end__mzdefine_40_2f_6d             = $8304 = 33540          words.asm:165
+end__mzdefine_61_3e_62_2f_6d       = $8331 = 33585          words.asm:223
+end__mzdefine_61_3e_72_2f_6d       = $82D9 = 33497          words.asm:102
+end__mzdefine_61_62_3e_72_2f_6d    = $82CE = 33486          words.asm:85
+end__mzdefine_62_3e_61_2f_6d       = $8337 = 33591          words.asm:232
+end__mzdefine_62_3e_72_2f_6d       = $82DE = 33502          words.asm:110
+end__mzdefine_63_21_2f_6d          = $82ED = 33517          words.asm:134
+end__mzdefine_63_40_2f_6d          = $82FC = 33532          words.asm:154
+end__mzdefine_72_3e_61_2f_6d       = $82E3 = 33507          words.asm:118
+end__mzdefine_72_3e_61_62_2f_6d    = $82D4 = 33492          words.asm:94
+end__mzdefine_72_3e_62_2f_6d       = $82E8 = 33512          words.asm:126
+end__mzdefine_73_77_61_70_2f_6d    = $8340 = 33600          words.asm:245
+end__mzdefine_77_6f_72_64_73_69_7a_65_2a_2f_6d = $8361 = 33633          words.asm:275
+
+
+total time: 0.0040 sec.
+no errors

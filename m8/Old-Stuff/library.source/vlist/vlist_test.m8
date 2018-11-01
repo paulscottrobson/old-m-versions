@@ -1,0 +1,11 @@
+// 
+//		Editor testing program
+//
+
+import vlist.m8 
+
+: main 
+
+con.clear con.yellow vlist.list
+
+debug halt ;

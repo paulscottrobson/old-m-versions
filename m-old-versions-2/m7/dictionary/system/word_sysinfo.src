@@ -1,0 +1,44 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      system.info
+;      @type      slow
+;      @desc      get address of data area
+;
+; *******************************************************************************
+; *******************************************************************************
+
+SystemInfo:
+	ld 		hl,SystemInfo
+	ret
+	org		SystemInfo+8 	
+
+; *******************************************************************************
+;								M7 System Information Table
+; *******************************************************************************
+
+;
+;	SIA addresses are put in the msystem.py class as static constants.
+;
+
+SIAProgramPointer:
+	dw 		ProgramSpace 						; (+8,+9)	Next free program byte
+
+SIAProgramPage:									; (+10)		Next free program byte (page)
+	db 		0,0
+
+SIARuntimeAddress:								; (+12,+13)	address of main program
+	dw 		HaltProcessor
+
+SIAStack:										; (+14,+15)	stack initial value
+	dw 		Z80Stack
+
+SIADictionaryBase:								; (+16,+17) base address of dictionary
+	dw 		DictionaryBase
+
+SIADictionaryNextFree:							; (+18,+19) next free byte in dictionary (page 0)
+	dw 		DictionaryBase
+
+SIADictionaryEnd:
+	dw 		DictionaryEnd 						; (+20,+21) last byte of dictionary space allowed
+

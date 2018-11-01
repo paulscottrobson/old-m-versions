@@ -1,0 +1,30 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      compiler.stream
+;      @type      slow
+;      @desc      compile code from parse stream until end of stream.
+;
+; *******************************************************************************
+; *******************************************************************************
+
+CompileStream:
+		push 	hl
+__CSTLoop:
+		call 	ParseWord							; get a word out
+		ld 		a,h 								; exit at end
+		or 		l
+		jr 		z,__CSTExit
+		call 	CompileOneWord 						; try to compile it
+		jr 		__CSTLoop 							; loop round.
+
+__CSTExit:
+		pop 	hl
+		ret
+		
+;
+;								Compile code from HL, enter here
+;		
+CompileCode:
+		ld 		(ParseAddress),hl 					; set parsing address
+		jr 		CompileStream 						; compile the stream.

@@ -1,0 +1,327 @@
+// ***********************************************************************************************
+// ***********************************************************************************************
+//
+//		Name : 		valid0.mz
+//		Purpose : 	Validate Level 0 words
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Created : 	7th October 2018
+//
+// ***********************************************************************************************
+// ***********************************************************************************************
+
+: main
+// ***********************************************************************************************
+//
+// 								 +
+//
+// ***********************************************************************************************
+
+	$9254 $4555 + $d7a9 validate
+	$cc73 $bddf + $8a52 validate
+	$1da8 $edd8 + $0b80 validate
+	$d7bc $d9a1 + $b15d validate
+	$b326 $5514 + $083a validate
+	$5433 $2875 + $7ca8 validate
+	$be90 $b967 + $77f7 validate
+	$f8ff $e01c + $d91b validate
+	$21d3 $e01a + $01ed validate
+// ***********************************************************************************************
+//
+//								NAND
+//
+// ***********************************************************************************************
+
+	$e8ce $4528 nand $bff7 validate
+	$0127 $28bb nand $ffdc validate
+	$8a07 $d21a nand $7dfd validate
+	$9d26 $cd9c nand $72fb validate
+	$74e6 $098e nand $ff79 validate
+	$be88 $a61e nand $59f7 validate
+	$a7ca $3413 nand $dbfd validate
+	$87db $977c nand $78a7 validate
+	$81a3 $35aa nand $fe5d validate
+
+// ***********************************************************************************************
+//
+// 								0<
+//
+// ***********************************************************************************************
+
+	$03e4 0< $0000 validate
+	$77fb 0< $0000 validate
+	$0346 0< $0000 validate
+	$d9ee 0< $ffff validate
+	$0000 0< $0000 validate
+	$7831 0< $0000 validate
+	$ebff 0< $ffff validate
+	$e83b 0< $ffff validate
+	$efb9 0< $ffff validate
+	$8ae5 0< $ffff validate
+
+// ***********************************************************************************************
+//
+// 								0=
+//
+// ***********************************************************************************************
+
+	$00e4 0= $0000 validate
+	$7700 0= $0000 validate
+	$0346 0= $0000 validate
+	$d9ee 0= $0000 validate
+	$0000 0= $FFFF validate
+	$7831 0= $0000 validate
+	$ebff 0= $0000 validate
+	$e83b 0= $0000 validate
+	$efb9 0= $0000 validate
+	$8ae5 0= $0000 validate
+
+// ***********************************************************************************************
+//
+//								swap
+//
+// ***********************************************************************************************
+
+	$B107 $AFE2 swap $B107 validate
+	$B107 $AFE2 swap swap $AFE2 validate
+	$B107 $AFE2 swap swap swap $B107 validate
+
+// ***********************************************************************************************
+//
+//							  wordsize*
+//
+// ***********************************************************************************************
+
+	1 wordsize* 2 validate
+	2 wordsize* 4 validate
+	64 wordsize* 128 validate
+	1024 wordsize* 2048 validate
+
+// ***********************************************************************************************
+//
+//						@ c@ ! c!
+//
+// ***********************************************************************************************
+
+	$12AB $E000 ! 
+	$E000 @ $12AB validate
+	$E000 c@ $AB validate
+	$E001 c@ $12 validate
+	$34 $E000 c!
+	$E000 @ $1234 validate
+
+// ***********************************************************************************************
+//
+//							  			2/
+//
+// ***********************************************************************************************
+
+	$6f8d 2/ $37c6 validate
+	$795d 2/ $3cae validate
+	$2196 2/ $10cb validate
+	$2f68 2/ $17b4 validate
+	$138b 2/ $09c5 validate
+	$a386 2/ $d1c3 validate
+	$cb28 2/ $e594 validate
+	$2172 2/ $10b9 validate
+	$3fff 2/ $1fff validate
+
+// ***********************************************************************************************
+//
+//											<
+//
+// ***********************************************************************************************
+
+	$b7b5 $9a34 < $0000 validate
+	$a020 $ae0a < $ffff validate
+	$db67 $20c1 < $ffff validate
+	$43b5 $ca1b < $0000 validate
+	$288e $016a < $0000 validate
+	$f1b3 $35ca < $ffff validate
+	$0e49 $6a56 < $ffff validate
+	$2d1c $8423 < $0000 validate
+	$2395 $5874 < $ffff validate
+	$2d45 $5ed7 < $ffff validate
+	$9603 $4447 < $ffff validate
+	$86d7 $7756 < $ffff validate
+	$463e $79e8 < $ffff validate
+	$6e92 $752c < $ffff validate
+	$5352 $1e54 < $0000 validate
+	$baf2 $2f3c < $ffff validate
+	$a993 $a993 < $0000 validate
+	$c196 $1046 < $ffff validate
+	$18e5 $18e5 < $0000 validate
+	$2023 $e72f < $0000 validate
+	$3740 $3740 < $0000 validate
+	$de38 $9b56 < $0000 validate
+	$52eb $cca5 < $0000 validate
+	$496b $496b < $0000 validate
+	$2d4e $49c1 < $ffff validate
+	$2685 $eefe < $0000 validate
+	$9dd3 $33bc < $ffff validate
+	$5a3c $ada9 < $0000 validate
+	$44e1 $44e1 < $0000 validate
+	$d80a $126c < $ffff validate
+	$db7d $e5a3 < $ffff validate
+	$d637 $3f4c < $ffff validate
+	$2eb5 $c39c < $0000 validate
+	$1299 $a36a < $0000 validate
+	$0e83 $e8ab < $0000 validate
+	$7e79 $e4d9 < $0000 validate
+	$3791 $1f60 < $0000 validate
+	$7d45 $8a97 < $0000 validate
+	$29ec $c3ea < $0000 validate
+	$37c2 $37c2 < $0000 validate
+	$8b37 $8b37 < $0000 validate
+	$7b64 $3136 < $0000 validate
+	$1f50 $2b42 < $ffff validate
+	$c586 $7121 < $ffff validate
+	$048b $2ae9 < $ffff validate
+	$a6d2 $a6d2 < $0000 validate
+	$9c0b $9c0b < $0000 validate
+	$b985 $653e < $ffff validate
+	$ed3c $a43a < $0000 validate
+	$6f39 $6f39 < $0000 validate
+	$8874 $6115 < $ffff validate
+	$d26e $395b < $ffff validate
+	$1adc $8507 < $0000 validate
+	$d964 $39db < $ffff validate
+	$1624 $3b0b < $ffff validate
+	$cbc1 $cbc1 < $0000 validate
+	$e121 $fa52 < $ffff validate
+	$3900 $cbec < $0000 validate
+	$09a9 $87ed < $0000 validate
+	$467f $e098 < $0000 validate
+	$9f25 $e0a5 < $ffff validate
+	$be4b $3c15 < $ffff validate
+	$6e11 $783d < $ffff validate
+	$97df $b38a < $ffff validate
+	$211b $66ec < $ffff validate
+	$ff25 $7e7e < $ffff validate
+	$a2d2 $3d3a < $ffff validate
+	$0727 $0727 < $0000 validate
+	$400e $2ab1 < $0000 validate
+	$c812 $c812 < $0000 validate
+	$f899 $02d9 < $ffff validate
+	$a321 $1dbd < $ffff validate
+	$660b $660b < $0000 validate
+	$28c1 $28c1 < $0000 validate
+	$17f5 $17f5 < $0000 validate
+	$7c0a $69bc < $0000 validate
+	$ce1e $f4dd < $ffff validate
+	$826b $50ef < $ffff validate
+	$c870 $17f9 < $ffff validate
+	$afd4 $5bc7 < $ffff validate
+	$c028 $dec9 < $ffff validate
+	$9b57 $9b57 < $0000 validate
+	$b224 $b224 < $0000 validate
+	$48ca $b40d < $0000 validate
+	$eea1 $eea1 < $0000 validate
+	$413d $d9db < $0000 validate
+	$6b63 $f287 < $0000 validate
+	$16ef $5f72 < $ffff validate
+	$968a $968a < $0000 validate
+	$36fa $7ba0 < $ffff validate
+
+// ***********************************************************************************************
+//	
+//												*
+//
+// ***********************************************************************************************
+
+	$0006 $161a * $849c validate
+	$0051 $00f1 * $4c41 validate
+	$1161 $000d * $e1ed validate
+	$0015 $00f1 * $13c5 validate
+	$0001 $6af6 * $6af6 validate
+	$0168 $009e * $de30 validate
+	$3a80 $0004 * $ea00 validate
+	$0071 $0217 * $ec27 validate
+	$0001 $91b3 * $91b3 validate
+	$0002 $0beb * $17d6 validate
+	$000d $09d4 * $7fc4 validate
+	$0003 $0c25 * $246f validate
+	$0380 $0031 * $ab80 validate
+	$0473 $001b * $7821 validate
+	$0485 $002f * $d46b validate
+	$0001 $3873 * $3873 validate
+	$032d $002e * $9216 validate
+	$0006 $286e * $f294 validate
+	$0022 $00d6 * $1c6c validate
+	$2ca8 $0002 * $5950 validate
+	$0ca8 $0005 * $3f48 validate
+	$0006 $0881 * $3306 validate
+	$0001 $c9d1 * $c9d1 validate
+	$007c $00c5 * $5f6c validate
+	$0008 $172e * $b970 validate
+	$0018 $016f * $2268 validate
+	$0001 $a4a4 * $a4a4 validate
+
+// ***********************************************************************************************
+//	
+//												/
+//
+// ***********************************************************************************************
+
+	$0154 $0016 /	 $000f validate
+	$3e33 $0064 /	 $009f validate
+	$5383 $0064 /	 $00d5 validate
+	$4095 $00e1 /	 $0049 validate
+	$4b8e $0b10 /	 $0006 validate
+	$3e58 $0088 /	 $0075 validate
+	$45ba $0817 /	 $0008 validate
+	$9569 $00f4 /	 $009c validate
+	$76cf $00e6 /	 $0084 validate
+	$536f $00eb /	 $005a validate
+	$bf19 $0034 /	 $03ac validate
+	$0dd9 $0639 /	 $0002 validate
+	$b1c1 $0063 /	 $01cb validate
+	$cf08 $09d6 /	 $0015 validate
+	$8513 $008f /	 $00ee validate
+	$b0aa $0532 /	 $0022 validate
+	$0695 $0c71 /	 $0000 validate
+	$232f $0c72 /	 $0002 validate
+	$3ca1 $0079 /	 $0080 validate
+	$5b77 $0f56 /	 $0005 validate
+	$bcad $04de /	 $0026 validate
+	$6a81 $0422 /	 $0019 validate
+	$d699 $0cdf /	 $0010 validate
+	$d3b7 $0d37 /	 $0010 validate
+	$5f2d $0064 /	 $00f3 validate
+	$d01b $0095 /	 $0165 validate
+	$9777 $0cca /	 $000b validate
+
+// ***********************************************************************************************
+//	
+//											mod
+//
+// ***********************************************************************************************
+
+	$a38b $003a mod $0031 validate
+	$1487 $007b mod $0059 validate
+	$0d96 $0800 mod $0596 validate
+	$d7e3 $000a mod $0007 validate
+	$5392 $00e4 mod $00be validate
+	$66ad $003f mod $000e validate
+	$39c6 $0038 mod $0006 validate
+	$9551 $0b89 mod $0ae5 validate
+	$5c1c $0229 mod $0162 validate
+	$c0bc $0231 mod $0215 validate
+	$815e $00d0 mod $002e validate
+	$c9d5 $0028 mod $001d validate
+	$a2e2 $0ba5 mod $0b81 validate
+	$caba $0029 mod $0021 validate
+	$be82 $007d mod $0014 validate
+	$f17f $00ae mod $0035 validate
+	$a42d $0451 mod $0027 validate
+	$bab4 $0023 mod $0015 validate
+	$a003 $0028 mod $0003 validate
+	$61f1 $00a1 mod $0076 validate
+	$1289 $0903 mod $0083 validate
+	$ec25 $001d mod $0011 validate
+	$c011 $0053 mod $0021 validate
+	$c46c $0400 mod $006c validate
+	$af89 $0494 mod $0191 validate
+	$230b $00a2 mod $003d validate
+	$7c73 $0c57 mod $010d validate
+
+$FFFF a>b debug halt

@@ -1,0 +1,12 @@
+:xxxx 
+
+con.clear
+buffer .h
+
+4 16 edit.setup
+edit.edit.line
+
+debug halt ;
+
+[xxxx]
+	

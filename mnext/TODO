@@ -1,0 +1,11 @@
+TODO List
+---------
+- optimise CompileWord to not page twice
+- strings  (then can remove all the comments on the print)
+- error is ASCIIZ string not number prefixed, so change the con.print.string there.
+- fix up status (probably need far read and far write)
+- some sort of multiple mark/restore
+- dictionary not changed 
+- far memory read and write.
+
+

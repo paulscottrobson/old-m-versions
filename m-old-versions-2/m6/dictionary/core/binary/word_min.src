@@ -1,0 +1,19 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      min
+;      @type      word
+;      @desc      Put in A the smaller of A and B
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		xor 	a									; clear carry
+		sbc 	hl,de 								; subtract for comparison
+		ld  	a,h 								; preserve MSB in A for sign bit
+		add 	hl,de 								; fix values back.
+		bit 	7,a 								; check bit 7
+		ret 	nz 									; if unsigned HL is smallest
+		ld 		h,d 								; otherwise DE is smallest
+		ld 		l,e
+		ret

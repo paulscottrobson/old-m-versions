@@ -1,0 +1,38 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name :		ide.mz
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Purpose :	Main IDE routine.
+//		Date :		4th October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+:error variable
+
+:coldstart
+	con.clear 										// Text titles
+	con.red "COLOR con.print.string
+	con.green "MZ con.print.string con.cr con.cr
+	con.yellow "Spectrum_Next_v0.11_(05-Oct-18)
+	con.print.string con.cr con.cr
+	0 error !!										// indicates no error message. 
+:warmstart	
+	sys.info 14 + @ <ld.sp,hl> 						// Reset stack.
+	error @@										// save message state
+	if con.yellow con.print.string con.cr then 		// if error then display error message
+	error @@
+	0= if 											// empty edit.buffer if no error.	
+		edit.buffer.size count! 224 edit.buffer fill 
+	then 	
+	"OK con.green con.print.string con.cr 			// prompt
+	x.debug
+	con.screen.height con.edit.size - 				// position of edit
+	con.edit.size edit.setup 						// and size, set up edit.
+	edit.edit.line 									// edit the line edit.buffer.
+	edit.buffer edit.buffer.size + 							// get edit.buffer start and end
+	con.white do.text error !! 						// execute it and store error.	
+	warmstart										// warm start.
+
+[coldstart]

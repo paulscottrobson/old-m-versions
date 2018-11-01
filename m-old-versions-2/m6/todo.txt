@@ -1,0 +1,4 @@
+TODO List
+=========
+- 	extract the code generator (?)
+- 	start tinkering.

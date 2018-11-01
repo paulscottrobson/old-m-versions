@@ -1,0 +1,125 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :  editor.mz </span><br />
+<span style='color:#FFFFFF;'>author : paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose : screen editor </span><br />
+<span style='color:#FFFFFF;'>date :  4th october 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FF0000;'>edit.start.pos </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>start position in chars </span><br />
+<span style='color:#FF0000;'>edit.size </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>size in characters </span><br />
+<span style='color:#FF0000;'>edit.cursor </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>cursor offset </span><br />
+<span style='color:#FF0000;'>edit.key </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>key press </span><br />
+<span style='color:#FF0000;'>edit.repaint.addr </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>repaint address </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>initialise editor (b = start row, a = # rows) </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>edit.setup </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>2* </span><span style='color:#00FF00;'>edit.size </span><span style='color:#00FF00;'>!! </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>2* </span><span style='color:#00FF00;'>edit.start.pos </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>screen refresh </span><br />
+<br />
+<span style='color:#FF0000;'>edit.refresh </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>edit.size </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>for </span><br />
+<span style='color:#00FF00;'>edit.start.pos </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>i </span><span style='color:#00FF00;'>b>r </span><br />
+<span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>screen! </span><br />
+<span style='color:#00FF00;'>next </span><br />
+<span style='color:#00FF00;'>edit.size </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>min </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>max </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>edit.start.pos </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>cursor! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>handle cursor movement </span><br />
+<br />
+<span style='color:#FF0000;'>edit.move.cursor </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>b>r </span><span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>if </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>then </span><span style='color:#00FF00;'>r>b </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>handle carriage return </span><br />
+<br />
+<span style='color:#FF0000;'>edit.cr </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>65504 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>put spaces at back and front of edit.buffer </span><br />
+<br />
+<span style='color:#FF0000;'>edit.space.surround </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>c! </span><br />
+<span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>edit.buffer.size </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>c! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>handle backspace </span><br />
+<br />
+<span style='color:#FF0000;'>edit.backspace </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>if </span><br />
+<span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>edit.buffer.size </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>- </span><span style='color:#00FF00;'>count! </span><br />
+<span style='color:#00FF00;'>edit.space.surround </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>a>b </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>copy </span><br />
+<span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>insert key </span><br />
+<br />
+<span style='color:#FF0000;'>edit.insert </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>edit.buffer.size </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>- </span><span style='color:#00FF00;'>count! </span><br />
+<span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>a>b </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>copy </span><br />
+<span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>a>r </span><br />
+<span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>192 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>63 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>+ </span><br />
+<span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>c! </span><br />
+<span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>colour repaint </span><br />
+<br />
+<span style='color:#FF0000;'>edit.repaint </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>edit.space.surround </span><br />
+<span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>edit.cursor </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>edit.repaint.addr </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>begin </span><br />
+<span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>3 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>4* </span><span style='color:#00FF00;'>a>r </span><br />
+<span style='color:#00FF00;'>edit.repaint.addr </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>63 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>edit.repaint.addr </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>c! </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>edit.repaint.addr </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>edit.repaint.addr </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>63 </span><span style='color:#00FF00;'>and </span><span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>= </span><br />
+<span style='color:#00FF00;'>until </span><br />
+<span style='color:#00FF00;'>r>a </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>main editor loop contents ; extracted as can exit on escape (editing block) cr (editing line) </span><br />
+<br />
+<span style='color:#FF0000;'>edit.main </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>edit.refresh </span><br />
+<span style='color:#00FF00;'>con.getkey </span><span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>13 </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>edit.cr </span><span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>-1 </span><span style='color:#00FF00;'>20 </span><span style='color:#00FF00;'>edit.move.cursor </span><br />
+<span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>21 </span><span style='color:#00FF00;'>edit.move.cursor </span><br />
+<span style='color:#00FF00;'>-32 </span><span style='color:#00FF00;'>22 </span><span style='color:#00FF00;'>edit.move.cursor </span><br />
+<span style='color:#00FF00;'>1 </span><span style='color:#00FF00;'>23 </span><span style='color:#00FF00;'>edit.move.cursor </span><br />
+<span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>4/ </span><span style='color:#00FF00;'>4 </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>-1 </span><span style='color:#00FF00;'>edit.repaint </span><span style='color:#00FF00;'>1 </span><span style='color:#00FF00;'>edit.repaint </span><span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>edit.backspace </span><span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>32 </span><span style='color:#00FF00;'>>= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>edit.insert </span><span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<span style='color:#FFFFFF;'>edit the edit.buffer, terminating on enter or "escape" (shift+enter) </span><br />
+<span style='color:#FFFFFF;'>************************************************************************************************ </span><br />
+<br />
+<span style='color:#FF0000;'>edit.edit.block </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>begin </span><span style='color:#00FF00;'>edit.main </span><span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>27 </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>until </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>edit.edit.line </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>begin </span><span style='color:#00FF00;'>edit.main </span><span style='color:#00FF00;'>edit.key </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>13 </span><span style='color:#00FF00;'>= </span><span style='color:#00FF00;'>until </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

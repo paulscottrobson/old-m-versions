@@ -1,0 +1,18 @@
+TODO
+====
+
+- better paging versions of memory compile
+
+- improve !! to lose the NOP (requires memory read/write.) (active.mz)
+
+- code to read and write 1k blocks from memory for editing it (core probably)
+
+- fix vlist.
+
+- vlist key-clear-top option like on Spectrum.
+
+- printing in immediate doesn't work right.
+
+- add save-by-name
+
+

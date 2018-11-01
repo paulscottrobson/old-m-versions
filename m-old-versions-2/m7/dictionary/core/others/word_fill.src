@@ -1,0 +1,36 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      fill
+;      @type      word
+;      @desc      fill memory [A+0] byte [A+2] target [A+4] count
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		push 	de
+		push 	hl
+		ld 		a,(hl)								; byte in A
+		inc 	hl
+		inc 	hl
+		ld 		e,(hl)								; target into DE temporarily
+		inc 	hl
+		ld 		d,(hl)
+		inc 	hl
+		ld 		c,(hl)								; count into BC
+		inc 	hl
+		ld 		b,(hl)
+		ex 		de,hl								; target in HL now
+		ld 		e,a 								; byte in E
+__fill1:
+		ld 		a,b 								; finished
+		or 		c
+		jr 		z,__fill2
+		dec 	bc
+		ld 		(hl),e
+		inc 	hl
+		jr 		__fill1
+__fill2:
+		pop 	hl
+		pop 	de
+		ret

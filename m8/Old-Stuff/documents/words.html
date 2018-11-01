@@ -1,0 +1,148 @@
+<html><head></head><body>
+<h3>!              (macro)</h1>
+<p>16 bit store of b at a</p><hr />
+<h3>*              (macro)</h1>
+<p>Multiply b into a</p><hr />
+<h3>+              (macro)</h1>
+<p>Add b into a</p><hr />
+<h3>+!              (word)</h1>
+<p>Add b to 16 bit word a</p><hr />
+<h3>,              (word)</h1>
+<p>Compile word a into program free memory</p><hr />
+<h3>-              (macro)</h1>
+<p>Subtract a from b, put in a</p><hr />
+<h3>-!              (word)</h1>
+<p>Subtract b from 16 bit word at a</p><hr />
+<h3>/              (word)</h1>
+<p>Divide a into b, result in a</p><hr />
+<h3>0-              (word)</h1>
+<p>2's complement a</p><hr />
+<h3>0<              (word)</h1>
+<p>A is true if a < 0 else false</p><hr />
+<h3>0=              (word)</h1>
+<p>A is true if a == 0, false otherwise</p><hr />
+<h3>1+              (macro)</h1>
+<p>Add 1 to a</p><hr />
+<h3>1-              (macro)</h1>
+<p>Subtract 1 from a</p><hr />
+<h3>16*              (macro)</h1>
+<p>Multiply a by 16</p><hr />
+<h3>16/              (word)</h1>
+<p>Divide a by 16 arithmetically</p><hr />
+<h3>2*              (macro)</h1>
+<p>Double a</p><hr />
+<h3>2+              (macro)</h1>
+<p>Add 2 to a</p><hr />
+<h3>2-              (macro)</h1>
+<p>Subtract 2 from a</p><hr />
+<h3>2/              (macro)</h1>
+<p>Arithmetic shift right a by 2</p><hr />
+<h3>256*              (macro)</h1>
+<p>Multiply a by 256</p><hr />
+<h3>4*              (macro)</h1>
+<p>Multiply a by 4</p><hr />
+<h3>4/              (word)</h1>
+<p>Divide a by 4 arithmetically</p><hr />
+<h3>8*              (macro)</h1>
+<p>Multiply a by 8</p><hr />
+<h3>;              (macro)</h1>
+<p>Compile return from subroutine</p><hr />
+<h3><              (word)</h1>
+<p>Set a to (b < a)</p><hr />
+<h3><=              (word)</h1>
+<p>Set a to (b <= a)</p><hr />
+<h3><>              (word)</h1>
+<p>Set a to (a != b)</p><hr />
+<h3>=              (word)</h1>
+<p>Set a to (b == a)</p><hr />
+<h3>>              (word)</h1>
+<p>Set a to (b > a)</p><hr />
+<h3>>=              (word)</h1>
+<p>Set a to (b >= a)</p><hr />
+<h3>@              (macro)</h1>
+<p>16 bit read of a to a</p><hr />
+<h3>a>b              (macro)</h1>
+<p>Copy a to b</p><hr />
+<h3>a>r              (macro)</h1>
+<p>Push a on the stack</p><hr />
+<h3>ab>r              (macro)</h1>
+<p>Push a and b on the stack</p><hr />
+<h3>abs              (word)</h1>
+<p>Set a to the absolute value of a</p><hr />
+<h3>and              (word)</h1>
+<p>And b into a</p><hr />
+<h3>b>a              (macro)</h1>
+<p>Copy b to a</p><hr />
+<h3>b>r              (macro)</h1>
+<p>Push b on the return stack</p><hr />
+<h3>breakpoint              (macro)</h1>
+<p>Add breakpoint here</p><hr />
+<h3>bswap              (macro)</h1>
+<p>Byte swap a</p><hr />
+<h3>buffer              (word)</h1>
+<p>Get address of buffer in a, size of buffer in b</p><hr />
+<h3>buffer.get              (word)</h1>
+<p>Get the next word from the buffer, using the buffer scan pointer.Returns a string with preceding length or zero if nothing left in buffer</p><hr />
+<h3>buffer.reset              (word)</h1>
+<p>Resets the buffer scan pointer so that we can scan input for words</p><hr />
+<h3>c!              (macro)</h1>
+<p>Store b in a, 8 bit</p><hr />
+<h3>c,              (word)</h1>
+<p>Compile byte a into program free memory</p><hr />
+<h3>c@              (macro)</h1>
+<p>8 bit read of a</p><hr />
+<h3>check.integer              (word)</h1>
+<p>See if string at a is a number, if so return a = 1, b = number, else return a = 0, b = undefined</p><hr />
+<h3>clrscreen              (word)</h1>
+<p>Clear the whole display</p><hr />
+<h3>copy              (word)</h1>
+<p></p><hr />
+<h3>count!              (word)</h1>
+<p>Save a as the count for various words</p><hr />
+<h3>cursor!              (word)</h1>
+<p>Set cursor position to a</p><hr />
+<h3>debug              (word)</h1>
+<p>Show a and b on the screen</p><hr />
+<h3>fill              (word)</h1>
+<p>Fill bytes from a with constant b, count set by count!</p><hr />
+<h3>find              (word)</h1>
+<p>Look for the word in the dictionary at a (a points to a length prefixed string) ; returns the address of the dictionary item in a, or alternatively 0 if not found</p><hr />
+<h3>halt              (word)</h1>
+<p>Stop program</p><hr />
+<h3>here              (macro)</h1>
+<p>Gets the address of the next free program location</p><hr />
+<h3>here.d              (macro)</h1>
+<p>Gets the address of the next free dictionary location</p><hr />
+<h3>key@              (word)</h1>
+<p>Scan keyboard into a, 0 if no key pressed</p><hr />
+<h3>macro.expand              (word)</h1>
+<p>Internal, expand a macro</p><hr />
+<h3>max              (word)</h1>
+<p>Put the larger of a and b in a</p><hr />
+<h3>min              (word)</h1>
+<p>Put the smaller of a and b in a</p><hr />
+<h3>mod              (word)</h1>
+<p>Remainder of b divide by a in a</p><hr />
+<h3>not              (word)</h1>
+<p>1's complement a</p><hr />
+<h3>or              (word)</h1>
+<p>Or b into a</p><hr />
+<h3>port!              (macro)</h1>
+<p>Write b to port a</p><hr />
+<h3>port@              (macro)</h1>
+<p>Read port a into a</p><hr />
+<h3>r>a              (macro)</h1>
+<p>Push a on the stack</p><hr />
+<h3>r>ab              (macro)</h1>
+<p>Pop a and b off the stack</p><hr />
+<h3>r>b              (macro)</h1>
+<p>Pop b off stack</p><hr />
+<h3>screen!              (word)</h1>
+<p>Write character b at screen location a</p><hr />
+<h3>swap              (macro)</h1>
+<p>Swap a and b</p><hr />
+<h3>sysinfo              (word)</h1>
+<p>Puts the system address info in a (not a loader)</p><hr />
+<h3>xor              (word)</h1>
+<p>Xor b into a</p><hr />
+</body></html>

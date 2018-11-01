@@ -1,0 +1,65 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>dictionary.end </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>code.end </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>code.page </span><br />
+<br />
+<span style='color:#FF0000;'>save.system.position </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>here.d </span><span style='color:#00FF00;'>dictionary.end! </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>6 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>code.end! </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>code.page! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>restore.system.position </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>dictionary.end@ </span><span style='color:#00FF00;'>c! </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>4 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>dictionary.end@ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>! </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>6 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>code.end@ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>! </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>8 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>code.page@ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>c! </span><br />
+<br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>dictionary word not defined if here.d == saved value. </span><br />
+<br />
+<br />
+<span style='color:#FF0000;'>dictionary.not.changed </span><span style='color:#00FF00;'>private </span><br />
+<span style='color:#00FF00;'>here.d </span><span style='color:#00FF00;'>dictionary.end@ </span><span style='color:#00FF00;'>= </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>status </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>con.print.hex </span><span style='color:#00FF00;'>con.space </span><span style='color:#00FF00;'>here.d </span><span style='color:#00FF00;'>con.print.hex </span><span style='color:#00FF00;'>con.cr </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>boot </span><br />
+<span style='color:#00FF00;'>con.clear </span><span style='color:#FFFFFF;'>intro message </span><br />
+<span style='color:#00FF00;'>con.red </span><span style='color:#00FF00;'>"colour </span><span style='color:#00FF00;'>con.print.string </span><br />
+<span style='color:#00FF00;'>con.yellow </span><span style='color:#00FF00;'>"m8 </span><span style='color:#00FF00;'>con.print.string </span><br />
+<span style='color:#00FF00;'>con.green </span><span style='color:#00FF00;'>"system </span><span style='color:#00FF00;'>con.print.string </span><br />
+<span style='color:#00FF00;'>con.cr </span><br />
+<span style='color:#00FF00;'>save.system.position </span><span style='color:#FFFFFF;'>save tod/code </span><br />
+<span style='color:#00FF00;'>0 </span><span style='color:#FFFFFF;'>no error </span><br />
+<br />
+<span style='color:#FF0000;'>warmstart </span><br />
+<span style='color:#FFFF00;'>here </span><span style='color:#FFFF00;'>$4000 </span><span style='color:#FFFF00;'>! </span><span style='color:#FFFFFF;'>when compiling save here at $4000 </span><br />
+<br />
+<span style='color:#00FF00;'>sp.reset </span><span style='color:#FFFFFF;'>reset stack </span><br />
+<span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>con.red </span><span style='color:#00FF00;'>con.print.string </span><span style='color:#FFFFFF;'>if error print in red </span><br />
+<span style='color:#00FF00;'>restore.system.position </span><span style='color:#FFFFFF;'>restore on error. </span><br />
+<span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>0= </span><span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>buffer.size </span><span style='color:#00FF00;'>a>c </span><span style='color:#00FF00;'>$e0 </span><span style='color:#00FF00;'>buffer </span><span style='color:#00FF00;'>fill </span><span style='color:#00FF00;'>then </span><span style='color:#FFFFFF;'>if no error then clear buffer </span><br />
+<span style='color:#00FF00;'>con.cr </span><span style='color:#00FF00;'>con.green </span><br />
+<span style='color:#00FF00;'>dictionary.not.changed </span><span style='color:#00FF00;'>if </span><span style='color:#FFFFFF;'>if dictionary hasn't changed </span><br />
+<span style='color:#00FF00;'>restore.system.position </span><span style='color:#FFFFFF;'>copy top dictionary/code back </span><br />
+<span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>x.debug </span><span style='color:#FFFFFF;'>show state then set up edit </span><br />
+<span style='color:#00FF00;'>con.screen.height </span><span style='color:#00FF00;'>con.edit.size </span><span style='color:#00FF00;'>- </span><span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>con.edit.size </span><span style='color:#00FF00;'>edit.setup </span><br />
+<span style='color:#00FF00;'>edit.edit.line </span><span style='color:#FFFFFF;'>edit the input line </span><br />
+<br />
+<span style='color:#00FF00;'>buffer </span><span style='color:#00FF00;'>buffer.size </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>do.source </span><span style='color:#FFFFFF;'>compile/execute it </span><br />
+<span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>warmstart </span><span style='color:#FFFFFF;'>if completes okay warmstart no error. </span><br />
+<br />
+<span style='color:#FFFF00;'>sys.info </span><span style='color:#FFFF00;'>10 </span><span style='color:#FFFF00;'>+ </span><span style='color:#FFFF00;'>$4000 </span><span style='color:#FFFF00;'>@ </span><span style='color:#FFFF00;'>swap </span><span style='color:#FFFF00;'>! </span><span style='color:#FFFFFF;'>at end store [$4000] (e.g. the address of) </span><br />
+<span style='color:#FFFFFF;'>warmstart saved above in the error vector. </span><br />
+<br />
+<span style='color:#FFFF00;'>boot </span><span style='color:#FFFFFF;'>run boot word </span><br />
+<br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

@@ -1,0 +1,144 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name :		console.cf
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Purpose :	Console I/O 
+//		Date :		29th October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+:con.x variable
+:con.y variable
+:con.base variable
+
+// ************************************************************************************************
+//							Number of lines in editing space/screen height
+// ************************************************************************************************
+
+:con.edit.size 4 ;												// Number of editing lines
+:con.screen.height a>r sys.info 40 + @ con.edit.size negate + r>b ;
+
+// ************************************************************************************************
+//									Clear Screen, Home Cursor
+// ************************************************************************************************
+
+:con.clear
+	ab>r io.raw.clear 0 con.x !! con.y !! 160 io.raw.print r>ab
+;
+
+// ************************************************************************************************
+//			   				 Emit character in current colour, no CR etc.
+// ************************************************************************************************
+
+:con.emit.raw
+	ab>r 
+		a>r con.x @@ con.y @@ io.raw.move r>a io.raw.print 160 io.raw.print 
+		1 con.x +!
+		sys.info 36 + @ con.x @@ <> if r>ab ; then
+		0 con.x !! 1 con.y +!
+		con.screen.height con.y @@ = if con.clear then
+	r>ab
+;
+
+// ************************************************************************************************
+//										Carriage Return
+// ************************************************************************************************
+
+:con.cr
+	ab>r
+		begin 32 con.emit.raw con.x @@ 0= until 
+	r>ab 
+;
+
+
+// ************************************************************************************************
+//										Emit space, spaces
+// ************************************************************************************************
+
+:con.space ab>r 32 con.emit.raw r>ab ;					// Print out 1 space
+:con.spaces ab>r if for con.space next then r>ab ;		// Print out A spaces
+
+// ************************************************************************************************
+//								  Emit (7 bit ASCII, supports CR)
+// ************************************************************************************************
+
+:con.emit 
+	ab>r 
+		13 = if con.cr r>ab ; then swap con.emit.raw
+	r>ab ;
+
+// ************************************************************************************************
+//								  Set colours by number or by name
+// ************************************************************************************************
+
+:con.colour io.raw.colour ; 	
+
+:con.red ab>r 1 con.colour r>ab ;				
+:con.blue ab>r 2 con.colour r>ab ;				
+:con.magenta ab>r 3 con.colour r>ab ;				
+:con.green ab>r 4 con.colour r>ab ;				
+:con.cyan ab>r 5 con.colour r>ab ;				
+:con.yellow ab>r 6 con.colour r>ab ;				
+:con.white ab>r 7 con.colour r>ab ;				
+
+// ************************************************************************************************
+//											Print String
+// ************************************************************************************************
+
+:con.print.string 	
+	ab>r swap
+	begin
+		b>a c@ 0= if r>ab ; then
+		b>a c@ con.emit swap 1+ 
+	0 until
+;
+
+// ************************************************************************************************
+//											Print Integer
+// ************************************************************************************************
+
+:con.print.digit private
+	15 and 10 >= if swap 7 + swap then swap 48 + con.emit 	// Print digit in 0-9a-f fomat
+;
+
+:con.print.integer private
+	con.base @@ ab>r / if con.print.integer then 			// divide by base, recurse if nonzero
+	r>ab mod con.print.digit 								// restore, modulus, print digit
+;
+
+:con.print.hex 
+	ab>r con.space 16 con.base !! swap con.print.integer r>ab ;
+:con.print.dec :.
+	ab>r con.space 10 con.base !! swap con.print.integer r>ab ;	
+:con.print.bin
+	ab>r con.space 2 con.base !! swap con.print.integer r>ab ;	
+
+:con.print.byte 
+	ab>r a>r 16/ con.print.digit r>a con.print.digit r>ab
+;
+
+:con.print.word
+	bswap con.print.byte bswap con.print.byte
+;
+
+// ************************************************************************************************
+//										Get a keystroke
+// ************************************************************************************************
+
+:current.key variable 
+
+:con.getkey.changed private
+	begin inkey current.key @@  <> until 
+	swap current.key !!
+;
+
+:con.getkey
+	a>r
+	begin con.getkey.changed until 
+	r>b 
+;
+
+{{ dict.crunch }}
+

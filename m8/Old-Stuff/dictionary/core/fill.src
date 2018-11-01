@@ -1,0 +1,30 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  fill
+;;      Type  word
+;
+;;$		Fill bytes from A with constant B, count set by count!
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	bc
+		ld 		bc,(ActionCount)
+		ld 		a,b
+		or 		c
+		ret 	z
+
+		push 	hl
+		
+__fill1:ld 		(hl),e
+
+		inc 	hl
+		dec 	bc
+		ld 		a,b
+		or 		c
+		jr 		nz,__fill1
+
+		pop 	hl
+		pop 	bc
+		ret

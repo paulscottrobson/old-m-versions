@@ -1,0 +1,41 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :  ide.mz </span><br />
+<span style='color:#FFFFFF;'>author : paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose : main ide routine. </span><br />
+<span style='color:#FFFFFF;'>date :  4th october 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FF0000;'>error </span><span style='color:#00FF00;'>variable </span><br />
+<br />
+<span style='color:#FF0000;'>coldstart </span><br />
+<span style='color:#00FF00;'>con.clear </span><span style='color:#FFFFFF;'>text titles </span><br />
+<span style='color:#00FF00;'>con.red </span><span style='color:#00FF00;'>"color </span><span style='color:#00FF00;'>con.print.string </span><br />
+<span style='color:#00FF00;'>con.green </span><span style='color:#00FF00;'>"mz </span><span style='color:#00FF00;'>con.print.string </span><span style='color:#00FF00;'>con.cr </span><span style='color:#00FF00;'>con.cr </span><br />
+<span style='color:#00FF00;'>con.yellow </span><span style='color:#00FF00;'>"spectrum_next_v0.11_(05-oct-18) </span><br />
+<span style='color:#00FF00;'>con.print.string </span><span style='color:#00FF00;'>con.cr </span><span style='color:#00FF00;'>con.cr </span><br />
+<span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>error </span><span style='color:#00FF00;'>!! </span><span style='color:#FFFFFF;'>indicates no error message. </span><br />
+<span style='color:#FF0000;'>warmstart </span><br />
+<span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>14 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>@ </span><span style='color:#FFFF00;'>{ld.sp,hl} </span><span style='color:#FFFF00;'>i, </span><span style='color:#FFFFFF;'>reset stack. </span><br />
+<span style='color:#00FF00;'>error </span><span style='color:#00FF00;'>@@ </span><span style='color:#FFFFFF;'>save message state </span><br />
+<span style='color:#00FF00;'>if </span><span style='color:#00FF00;'>con.yellow </span><span style='color:#00FF00;'>con.print.string </span><span style='color:#00FF00;'>con.cr </span><span style='color:#00FF00;'>then </span><span style='color:#FFFFFF;'>if error then display error message </span><br />
+<span style='color:#00FF00;'>error </span><span style='color:#00FF00;'>@@ </span><br />
+<span style='color:#00FF00;'>0= </span><span style='color:#00FF00;'>if </span><span style='color:#FFFFFF;'>empty edit.buffer if no error. </span><br />
+<span style='color:#00FF00;'>edit.buffer.size </span><span style='color:#00FF00;'>count! </span><span style='color:#00FF00;'>224 </span><span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>fill </span><br />
+<span style='color:#00FF00;'>then </span><br />
+<span style='color:#00FF00;'>"ok </span><span style='color:#00FF00;'>con.green </span><span style='color:#00FF00;'>con.print.string </span><span style='color:#00FF00;'>con.cr </span><span style='color:#FFFFFF;'>prompt </span><br />
+<span style='color:#00FF00;'>x.debug </span><br />
+<span style='color:#00FF00;'>con.screen.height </span><span style='color:#00FF00;'>con.edit.size </span><span style='color:#00FF00;'>- </span><span style='color:#FFFFFF;'>position of edit </span><br />
+<span style='color:#00FF00;'>con.edit.size </span><span style='color:#00FF00;'>edit.setup </span><span style='color:#FFFFFF;'>and size, set up edit. </span><br />
+<span style='color:#00FF00;'>edit.edit.line </span><span style='color:#FFFFFF;'>edit the line edit.buffer. </span><br />
+<span style='color:#00FF00;'>edit.buffer </span><span style='color:#00FF00;'>edit.buffer.size </span><span style='color:#00FF00;'>+ </span><span style='color:#FFFFFF;'>get edit.buffer start and end </span><br />
+<span style='color:#00FF00;'>con.white </span><span style='color:#00FF00;'>do.text </span><span style='color:#00FF00;'>error </span><span style='color:#00FF00;'>!! </span><span style='color:#FFFFFF;'>execute it and store error. </span><br />
+<span style='color:#00FF00;'>warmstart </span><span style='color:#FFFFFF;'>warm start. </span><br />
+<br />
+<span style='color:#FFFF00;'>coldstart </span><br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

@@ -1,0 +1,62 @@
+
+variable dictionary.end
+variable code.end
+variable code.page
+
+:save.system.position private
+	here.d dictionary.end!
+	sys.info 6 + @ code.end!
+	sys.info 8 + c@ code.page!
+;
+
+:restore.system.position private
+	0 dictionary.end@ c!
+	sys.info 4 + dictionary.end@ swap !
+	sys.info 6 + code.end@ swap !
+	sys.info 8 + code.page@ swap c!
+
+;
+
+//
+//			Dictionary word not defined if here.d == saved value.
+//
+
+:dictionary.not.changed private
+	here.d dictionary.end@ =
+;
+
+:status here con.print.hex con.space here.d con.print.hex con.cr ;
+
+:boot
+	con.clear 										// Intro message
+	con.red "COLOUR con.print.string
+	con.yellow  "M8 con.print.string
+	con.green "system con.print.string 
+	con.cr
+	save.system.position 							// Save TOD/Code
+	0 												// No error
+
+:warmstart
+	[here] [$4000] [!] 								// When compiling save here at $4000
+
+	sp.reset 										// Reset stack
+	a>r if con.red con.print.string 	  			// If error print in red
+		restore.system.position 					// restore on error.
+	then
+	r>a 0= if buffer.size a>c $E0 buffer fill then 	// If no error then clear buffer
+	con.cr con.green
+	dictionary.not.changed if 						// If dictionary hasn't changed
+		restore.system.position 					// Copy Top Dictionary/Code back
+	then
+	x.debug 										// Show state then set up edit
+ 	con.screen.height con.edit.size - 1- con.edit.size edit.setup
+ 	edit.edit.line 									// edit the input line
+
+	buffer buffer.size + swap do.source 			// Compile/execute it
+	0 warmstart  									// If completes okay warmstart no error.
+
+[sys.info] [10] [+] [$4000] [@] [swap] [!] 			// At end store [$4000] (e.g. the address of)
+													// warmstart saved above in the error vector.
+
+[boot] 												// Run boot word
+	

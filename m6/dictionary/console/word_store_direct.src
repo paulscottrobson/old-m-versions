@@ -1,0 +1,17 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      screen!
+;      @type      slow
+;      @desc      write B to screen location A (000-2FF). B is the 2 + 6 bit 
+;	   @desc 	  format, the lower 6 bits being the 6 bit ASCII value and the
+;	   @desc      upper two representing the colour (0=red,1=white,2=green,
+; 	   @desc 	  3=yellow)
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		ld 		a,e
+		jp 		IOWriteCharacter
+
+		

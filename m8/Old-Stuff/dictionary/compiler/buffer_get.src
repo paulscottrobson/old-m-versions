@@ -1,0 +1,72 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  buffer.get
+;;      Type  word
+;
+;;$		Get the next word from the buffer, using the buffer scan 
+;;$ 	pointer. Returns a string with preceding length or zero if
+;;$ 	nothing left in buffer.
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	de 											; save B
+		ld 		hl,(bufferScanPointer) 						; HL contains the buffer pointer
+		ld 		de,wordBuffer+1	 							; DE is where its copied to.
+		ld 		b,0 										; B is the string length
+
+__BGSkipSpaces:
+		call 	__BGGetCharacter 							; get character
+		jr 		c,__BGFailed 								; none remaining
+		ld 		c,a 										; put temp in C
+		and 	$3F 										; is it a space character ?
+		cp 		$20
+		jr 		z,__BGSkipSpaces 							; yes, then go back
+
+__BGNextCharacter:
+		ld 		a,c 										; write char in C to string
+		ld 		(de),a
+		inc 	de
+		inc 	b 											; increment length by 1.
+		ld 		a,b 										; reached 30 characters
+		cp 		30
+		jr 		z,__BGSucceed 								; then that's yout lot
+		call 	__BGGetCharacter 							; get next character
+		ld 		c,a 										; save in C
+		jr 		c,__BGSucceed 								; if end of buffer, done this word
+		and 	$3F 										; check if space
+		cp 		$20 										; if not, go back and get next
+		jr 		nz,__BGNextCharacter
+
+__BGSucceed:
+		ld 		(bufferScanPointer),hl 						; update scan pointer
+		ld 		hl,wordBuffer 								; point HL to string start (char count)
+		ld 		(hl),b 										; update that value
+		pop 	de 											; reload B
+		ret
+
+__BGFailed:
+		ld 		(bufferScanPointer),hl 						; update scan pointer
+		ld 		hl,0 										; return zero
+		pop 	de 											; reload B
+		ret
+
+;
+;		Get next character into A, returns Carry Set if none left.
+;
+__BGGetCharacter:
+		ld 		a,l 										; have we reached buffer end.
+		cp 		editBufferEnd & 0xFF 						
+		jr 		nz,__BGGC2
+		ld 		a,h
+		cp 		editBufferEnd / 256
+		jr 		nz,__BGGC2
+
+		scf 												; end, so return with Carry Set.
+		ret
+
+__BGGC2:xor 	a 											; clear carry
+		ld 		a,(hl)										; read character
+		inc 	hl 											; bump pointer
+		ret

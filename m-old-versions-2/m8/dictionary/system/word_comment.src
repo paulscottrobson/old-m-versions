@@ -1,0 +1,30 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      (*
+;      @type      immediate
+;      @desc      Skip Comments
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		push 	hl
+__CommentSkip:
+		call 	ParseWord 							; get next word
+		ld 		a,h 								; end of input
+		or 		l
+		jp 		z,ERR_UnclosedComment
+
+		ld 		a,(hl) 								; keep going till found *) [$00]
+		cp 		'*'
+		jr 		nz,__CommentSkip
+		inc 	hl
+		ld 		a,(hl)
+		cp 		')'
+		jr 		nz,__CommentSkip
+		inc 	hl
+		ld 		a,(hl)
+		or 		a
+		jr 		nz,__CommentSkip
+		pop		hl
+		ret

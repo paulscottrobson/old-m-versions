@@ -1,0 +1,4 @@
+//	this is a comment
+
+compile 12 11 debug halt
+

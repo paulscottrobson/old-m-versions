@@ -1,0 +1,92 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name : 		words.m8
+//		Author : 	Paul Robson (paul@robsons.org.uk)
+//		Purpose : 	More Standard words in M8 
+//		Date : 		15th September 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+//
+//		Equality testers
+//
+:= 	<xor.a> <sbc.hl,de> <dec.hl> <ret.z> <ld.hl,aaaa> [0] [,] ;
+:<>	<xor.a> <sbc.hl,de> <ret.z> <ld.hl,aaaa> [-1] [,] ;
+
+//
+//		Comparision testers
+//
+:>= <dec.hl>
+:> <xor.a> <sbc.hl,de> <sbc.a,a> <ld.l,a> <ld.h,a> ;
+
+:<= <inc.hl>
+:< <xor.a> <ex.de,hl> <sbc.hl,de> <sbc.a,a> <add.hl,de> <ex.de,hl> <ld.l,a> <ld.h,a> ;
+
+//
+//		Binary operators
+//
+:and <ld.a,l> <and.e> <ld.l,a> <ld.a,h> <and.d> <ld.h,a> ;
+:or  <ld.a,l> <or.e> <ld.l,a> <ld.a,h> <or.d> <ld.h,a> ;
+:xor  <ld.a,l> <xor.e> <ld.l,a> <ld.a,h> <xor.d> <ld.h,a> ;
+
+//
+//		Minimum / Maximum values
+//
+:min <xor.a> <sbc.hl,de> <ld.a,h> <add.hl,de> <or.a> <ret.m> <ld.l,e> <ld.h,d> ;
+:max <xor.a> <sbc.hl,de> <ld.a,h> <add.hl,de> <or.a> <ret.p> <ld.l,e> <ld.h,d> ;
+
+//
+//		Dictionary next free / Program next free
+//
+:here b>r sys.info 2+ 2+ 2+ @ r>b ;
+:here.d b>r sys.info 2+ 2+ @ r>b ;
+
+// ********************************************************************************************************
+//
+//										This code is macro structures
+//
+// ********************************************************************************************************
+
+//
+//		Loop locations for internal structures
+//
+variable if.marker  						// Branch position for if marker.
+variable begin.marker  						// Branch back for begin
+variable for.marker 						// Branch back for for
+
+[macros]
+//
+//		If ... Then code 
+//
+:if 	{ld.a,h} a, {or.l} a, {jp.z,aaaa} a,
+		here if.marker! 0 ,
+		;
+:-if 	{bit.7,h} a, {jp.z,aaaa} a,
+		here if.marker! 0 ,
+		;
+:then	here if.marker@ !
+		;
+
+//
+//		Begin ... Until code
+//
+:begin 	here begin.marker! 
+		;
+:until 	{ld.a,h} a, {or.l} a, {jp.z,aaaa} a, begin.marker@ ,
+		;
+:-until	{bit.7,h} a, {jp.z,aaaa} a, begin.marker@ ,
+		;
+
+//
+//		For ... Next code
+//
+:for 	here for.marker!
+		{dec.hl} a, {push.hl} a,
+		;
+:next 	{pop.hl} a, {ld.a,h} a, {or.l} a, {jp.nz,aaaa} a, for.marker@ ,
+		;
+:i 		{pop.hl} a, {push.hl} a, ;
+
+[mwords]

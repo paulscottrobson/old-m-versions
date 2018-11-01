@@ -1,0 +1,865 @@
+              	; --------------------------------------
+              	; zasm: assemble "kernel.asm"
+              	; date: 2018-09-21 02:35:30
+              	; --------------------------------------
+
+
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	;
+              	;		Name : 		kernel.asm
+              	;		Purpose : 	Kernel
+              	;		Author :	Paul Robson (paul@robsons.org.uk)
+              	;		Created : 	17th September 2018
+              	;
+              	; ***********************************************************************************************
+              	; ***********************************************************************************************
+              	
+5B00:         			org 		$5B00
+5B00:         	ColdStart:
+5B00: 1810    			jr 			Boot
+              	
+5B02:         	SystemInformation:
+5B02: 005B    			dw 			ColdStart					; +0,+1 	Cold Start/Load Address
+5B04: D05D    			dw 			FreeMemory					; +2,+3 	Free Data (if seperate)
+5B06: 0080    			dw			$8000 						; +4,+5 	Free Code Memory address
+5B08: 00      			db 			0 							; +6 		Free Code Page address
+5B09: 00      			db 			0							; +7 		Paging system (standard)
+5B0A: 0000    			dw 			0 							; +8,+9 	Dictionary Base (not used)
+5B0C:         	MainAddress:
+5B0C: 215D    			dw 			HaltSystem 					; +10,+11 	Main address (fixed to stop)
+5B0E: 20      			db 			IOScreenWidth				; +12 		Screen Width
+5B0F: 18      			db 			IOScreenHeight 				; +13 		Screen Height
+5B10:         	StackReset:
+5B10: CE5D    			dw 			StackTop 					; +6,+7 Stack rese
+              	
+5B12: F3      	Boot:	di 										; interrupt off
+5B13: 31105B  			ld 			sp,StackReset				; default stack
+5B16: 2A0C5B  			ld			hl,(MainAddress) 			; push start address on stack
+5B19: E5      			push 		hl
+5B1A: 210000  			ld 			hl,$0000					; reset registers
+5B1D: 110000  			ld 			de,$0000
+5B20: 010000  			ld 			bc,$0000
+5B23: C9      			ret 									; and go to the start
+              	
+              			include 	"support/multiply.asm" 		; support files
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		multiply.asm
+              	;		Purpose:	16 bit unsigned multiply
+              	;		Date:		15th August 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;								Does HL = HL * DE
+              	;
+              	; *********************************************************************************
+              	
+5B24:         	Multiply16:
+5B24: C5      			push 	bc
+5B25: D5      			push 	de
+5B26: 44      			ld 		b,h 							; get multipliers in DE/BC
+5B27: 4D      			ld 		c,l
+5B28: 210000  			ld 		hl,0 							; zero total
+5B2B:         	__Core__Mult_Loop:
+5B2B: CB41    			bit 	0,c 							; lsb of shifter is non-zero
+5B2D: 2801    			jr 		z,__Core__Mult_Shift
+5B2F: 19      			add 	hl,de 							; add adder to total
+5B30:         	__Core__Mult_Shift:
+5B30: CB38    			srl 	b 								; shift BC right.
+5B32: CB19    			rr 		c
+5B34: EB      			ex 		de,hl 							; shift DE left
+5B35: 29      			add 	hl,hl
+5B36: EB      			ex 		de,hl
+5B37: 78      			ld 		a,b 							; loop back if BC is nonzero
+5B38: B1      			or 		c
+5B39: 20F0    			jr 		nz,__Core__Mult_Loop
+5B3B: D1      			pop 	de
+5B3C: C1      			pop 	bc
+5B3D: C9      			ret
+              	
+              			
+              			include 	"support/divide.asm"
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		divide.asm
+              	;		Purpose:	16 bit unsigned divide
+              	;		Date:		15th August 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	
+              	; *********************************************************************************
+              	;
+              	;			Calculates DE / HL. On exit DE = result, HL = remainder
+              	;
+              	; *********************************************************************************
+              	
+5B3E:         	DivideMod16:
+              	
+5B3E: C5      		push 	bc
+5B3F: 42      		ld 		b,d 				; DE 
+5B40: 4B      		ld 		c,e
+5B41: EB      		ex 		de,hl
+5B42: 210000  		ld 		hl,0
+5B45: 78      		ld 		a,b
+5B46: 0608    		ld 		b,8
+5B48:         	Div16_Loop1:
+5B48: 17      		rla
+5B49: ED6A    		adc 	hl,hl
+5B4B: ED52    		sbc 	hl,de
+5B4D: 3001    		jr 		nc,Div16_NoAdd1
+5B4F: 19      		add 	hl,de
+5B50:         	Div16_NoAdd1:
+5B50: 10F6    		djnz 	Div16_Loop1
+5B52: 17      		rla
+5B53: 2F      		cpl
+5B54: 47      		ld 		b,a
+5B55: 79      		ld 		a,c
+5B56: 48      		ld 		c,b
+5B57: 0608    		ld 		b,8
+5B59:         	Div16_Loop2:
+5B59: 17      		rla
+5B5A: ED6A    		adc 	hl,hl
+5B5C: ED52    		sbc 	hl,de
+5B5E: 3001    		jr 		nc,Div16_NoAdd2
+5B60: 19      		add 	hl,de
+5B61:         	Div16_NoAdd2:
+5B61: 10F6    		djnz 	Div16_Loop2
+5B63: 17      		rla
+5B64: 2F      		cpl
+5B65: 51      		ld 		d,c
+5B66: 5F      		ld 		e,a
+5B67: C1      		pop 	bc
+5B68: C9      		ret
+              		
+              		
+              			include 	"support/hardware.asm"
+              	; *********************************************************************************
+              	; *********************************************************************************
+              	;
+              	;		File:		hardware.asm
+              	;		Purpose:	Hardware interface to Spectrum
+              	;		Date:		15th June 2018
+              	;		Author:		paul@robsons.org.uk
+              	;
+              	; *********************************************************************************
+              	; *********************************************************************************
+              		
+0020:         	IOScreenWidth: equ 32 									; screen size
+0018:         	IOScreenHeight: equ 24
+              	
+              	; *********************************************************************************
+              	;
+              	;		Set the current display cursor position to the offset specified in
+              	;		the lower 10 bits of HL.
+              	;
+              	; *********************************************************************************
+              	
+5B69:         	IOSetCursor:
+5B69: F5      			push 	af									; save registers
+5B6A: E5      			push 	hl
+5B6B: 2A1D5C  			ld 		hl,(IOCursorPosition)				; remove old cursor
+5B6E: CBBE    			res 	7,(hl)
+5B70: E1      			pop 	hl
+5B71: E5      			push 	hl
+5B72: 7C      			ld 		a,h 								; convert new cursor to attr pos
+5B73: E603    			and 	03
+5B75: FE03    			cp 		3 									; cursor position out of range
+5B77: 2806    			jr 		z,__scexit							; don't update
+5B79: F658    			or 		$58
+5B7B: 67      			ld 		h,a
+5B7C: 221D5C  			ld 		(IOCursorPosition),hl
+5B7F:         	__scexit:		
+5B7F: 2A1D5C  			ld 		hl,(IOCursorPosition)				; show new cursor
+5B82: CBFE    			set 	7,(hl)		
+5B84: E1      	 		pop		hl
+5B85: F1      			pop 	af
+5B86: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;								Clear the screen
+              	;
+              	; *********************************************************************************
+              	
+5B87:         	IOClearScreen:
+5B87: F5      			push 	af 									; save registers
+5B88: E5      			push 	hl
+5B89: 210040  			ld 		hl,$4000 							; clear pixel memory
+5B8C: 3600    	__cs1:	ld 		(hl),0
+5B8E: 23      			inc 	hl
+5B8F: 7C      			ld 		a,h
+5B90: FE58    			cp 		$58
+5B92: 20F8    			jr 		nz,__cs1
+5B94: 3647    	__cs2:	ld 		(hl),$47							; clear attribute memory
+5B96: 23      			inc 	hl
+5B97: 7C      			ld 		a,h
+5B98: FE5B    			cp 		$5B
+5B9A: 20F8    			jr 		nz,__cs2		
+5B9C: 2A1D5C  			ld 		hl,(IOCursorPosition)				; reset cursor bit
+5B9F: CBFE    			set 	7,(hl)
+5BA1: AF      			xor 	a 									; border off
+5BA2: D3FE    			out 	($FE),a
+5BA4: E1      			pop 	hl 									; restore and exit.
+5BA5: F1      			pop 	af
+5BA6: C9      			ret
+              	
+              	; *********************************************************************************
+              	;
+              	;	Write a character A on the screen at HL. HL is bits 0-9, A is a 2+6 bit
+              	;	colour / character.
+              	;
+              	; *********************************************************************************
+              	
+5BA7:         	IOWriteCharacter:
+5BA7: F5      			push 	af 									; save registers
+5BA8: C5      			push 	bc
+5BA9: D5      			push 	de
+5BAA: E5      			push 	hl
+              	
+5BAB: 4F      			ld 		c,a 								; save character in C
+              	
+5BAC: 7C      			ld 		a,h 								; check H in range 0-2
+5BAD: E603    			and 	3
+5BAF: FE03    			cp 		3
+5BB1: 2861    			jr 		z,__wcexit
+              	
+5BB3: E5      			push 	hl 									; save screen address
+              	;
+              	;		update attribute
+              	;
+5BB4: 7C      			ld 		a,h 								; convert to attribute position
+5BB5: E603    			and 	3
+5BB7: F658    			or 		$58
+5BB9: 67      			ld 		h,a
+              	
+5BBA: 79      			ld 		a,c 								; rotate left twice
+5BBB: 07      			rlca
+5BBC: 07      			rlca
+5BBD: E603    			and 	3 									; now a value 0-3
+5BBF: C619    			add 	a,IOColours & 255 					; add __wc_colours, put in DE
+5BC1: 5F      			ld 		e,a
+5BC2: 3E5C    			ld 		a,IOColours / 256
+5BC4: CE00    			adc 	a,0
+5BC6: 57      			ld 		d,a
+5BC7: 1A      			ld 		a,(de)								; get colours.
+5BC8: 77      			ld 		(hl),a
+              	;
+              	;		char# 0-63 to font address
+              	;
+5BC9: 79      			ld 		a,c 								; A = char#
+5BCA: E63F    			and 	$3F 								; bits 0-6 only
+5BCC: EE20    			xor 	$20									; make it 7 bit.
+5BCE: C620    			add 	a,$20		
+5BD0: FE41    			cp 		'A' 								; make it lower case
+5BD2: 3806    			jr 		c,__wc2
+5BD4: FE5B    			cp 		'Z'+1
+5BD6: 3002    			jr 		nc,__wc2
+5BD8: C620    			add 	a,$20
+5BDA:         	__wc2:
+5BDA: 6F      			ld 		l,a 								; put in HL
+5BDB: 2600    			ld 		h,0
+5BDD: 29      			add 	hl,hl 								; x 8
+5BDE: 29      			add 	hl,hl
+5BDF: 29      			add 	hl,hl
+5BE0: 11003C  			ld 		de,$3C00 							; add $3C00
+5BE3: 19      			add 	hl,de
+5BE4: EB      			ex 		de,hl 								; put in DE (font address)
+              	;
+              	;		screen position 0-767 to screen address
+              	;
+5BE5: E1      			pop 	hl 									; restore screen address
+5BE6: 7C      			ld 		a,h 								; L contains Y5-Y3,X4-X0. Get H
+5BE7: E603    			and 	3 									; lower 2 bits (Y7,Y6)
+5BE9: 87      			add 	a,a 								; shift left three times
+5BEA: 87      			add 	a,a
+5BEB: 87      			add 	a,a
+5BEC: F640    			or 		$40 								; set bit 6, HL now points to VRAM.		
+5BEE: 67      			ld 		h,a 								; put it back in H.
+              	;
+              	;		copy font data to screen position.
+              	;
+              	;
+              	;		ld 		b,8 								; copy 8 characters
+              	
+5BEF: 1A      			ld 		a,(de)								; 0
+5BF0: 77      			ld 		(hl),a
+5BF1: 24      			inc 	h
+5BF2: 13      			inc 	de
+              	
+5BF3: 1A      			ld 		a,(de)								; 1
+5BF4: 77      			ld 		(hl),a
+5BF5: 24      			inc 	h
+5BF6: 13      			inc 	de
+              	
+5BF7: 1A      			ld 		a,(de)								; 2
+5BF8: 77      			ld 		(hl),a
+5BF9: 24      			inc 	h
+5BFA: 13      			inc 	de
+              	
+5BFB: 1A      			ld 		a,(de)								; 3
+5BFC: 77      			ld 		(hl),a
+5BFD: 24      			inc 	h
+5BFE: 13      			inc 	de
+              	
+5BFF: 1A      			ld 		a,(de)								; 4
+5C00: 77      			ld 		(hl),a
+5C01: 24      			inc 	h
+5C02: 13      			inc 	de
+              	
+5C03: 1A      			ld 		a,(de)								; 5
+5C04: 77      			ld 		(hl),a
+5C05: 24      			inc 	h
+5C06: 13      			inc 	de
+              	
+5C07: 1A      			ld 		a,(de)								; 6
+5C08: 77      			ld 		(hl),a
+5C09: 24      			inc 	h
+5C0A: 13      			inc 	de
+              	
+5C0B: 1A      			ld 		a,(de)								; 7
+5C0C: 77      			ld 		(hl),a
+5C0D: 24      			inc 	h
+5C0E: 13      			inc 	de
+              	
+5C0F: 2A1D5C  			ld 		hl,(IOCursorPosition)				; show cursor if we've just overwritten it
+5C12: CBFE    			set 	7,(hl)
+              	
+5C14:         	__wcexit:
+5C14: E1      			pop 	hl 									; restore and exit
+5C15: D1      			pop 	de
+5C16: C1      			pop 	bc
+5C17: F1      			pop 	af
+5C18: C9      			ret
+              	
+              	
+              	;
+              	;		colour bit colours
+              	;
+5C19:         	IOColours:
+5C19: 42      			db 		$42 								; 00 (red)
+5C1A: 47      			db 		$47 								; 01 (white)
+5C1B: 44      			db 		$44 								; 10 (green)
+5C1C: 46      			db 		$46 								; 11 (yellow)
+              	
+5C1D:         	IOCursorPosition:
+5C1D: 0000    			dw 		0
+              	
+              	; *********************************************************************************
+              	;
+              	;					Print 2+6 at cursor position and bump it
+              	;
+              	; *********************************************************************************
+              			
+5C1F:         	IOPrintCharacter:
+5C1F: E5      			push 	hl
+5C20: 2A1D5C  			ld 		hl,(IOCursorPosition)
+5C23: CDA75B  			call 	IOWriteCharacter
+5C26: 23      			inc 	hl
+5C27: CD695B  			call	IOSetCursor
+5C2A: E1      			pop 	hl
+5C2B: C9      			ret
+              			
+              	; *********************************************************************************
+              	;
+              	;					Print HL in hex with preceding space
+              	;
+              	; *********************************************************************************
+              	
+5C2C:         	IOPrintHex:
+5C2C: 3E20    			ld 		a, ' '
+5C2E: CD1F5C  			call 	IOPrintCharacter
+5C31: 7C      			ld 		a,h
+5C32: CD365C  			call 	__IOPrintByte
+5C35: 7D      			ld 		a,l
+5C36:         	__IOPrintByte:
+5C36: F5      			push 	af
+5C37: CB0F    			rrc 	a
+5C39: CB0F    			rrc 	a
+5C3B: CB0F    			rrc 	a
+5C3D: CB0F    			rrc 	a
+5C3F: CD435C  			call 	__IOPrintNibble
+5C42: F1      			pop 	af
+5C43:         	__IOPrintNibble:
+5C43: E60F    			and 	15
+5C45: FE0A    			cp 		10
+5C47: 3802    			jr 		c,__IOPNDigit
+5C49: D609    			sub 	a,9
+5C4B:         	__IOPNDigit:
+5C4B: C639    			add 	9+48
+5C4D: CD1F5C  			call 	IOPrintCharacter
+5C50: C9      			ret
+              			
+              			include 	"support/debug.asm"
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	;
+              	;		Name : 		debug.asm
+              	;		Author : 	Paul Robson (paul@robsons.org.uk)
+              	;		Purpose : 	Debug routine (shows A B C on bottom line)
+              	;		Date : 		7th September 2018
+              	;
+              	; ********************************************************************************************************
+              	; ********************************************************************************************************
+              	
+5C51:         	DebugCode:	
+5C51: C5      			push 	bc
+5C52: D5      			push 	de
+5C53: E5      			push 	hl
+5C54: C5      			push 	bc
+5C55: D5      			push 	de
+              	
+5C56: EB      			ex 		de,hl
+5C57: 0681    			ld 		b,'A'+$40
+5C59: 0E40    			ld 		c,$40
+5C5B: 21EC02  			ld 		hl,12+23*32
+5C5E: CD7B5C  			call 	__DisplayHexInteger
+              	
+5C61: D1      			pop 	de
+5C62: 0682    			ld 		b,'B'+$40
+5C64: 0EC0    			ld 		c,$C0
+5C66: 21F302  			ld 		hl,19+23*32
+5C69: CD7B5C  			call 	__DisplayHexInteger
+              	
+5C6C: D1      			pop 	de
+5C6D: 0683    			ld 		b,'C'+$40
+5C6F: 0E00    			ld 		c,$00
+5C71: 21FA02  			ld 		hl,26+23*32
+5C74: CD7B5C  			call 	__DisplayHexInteger
+              	
+5C77: E1      			pop 	hl
+5C78: D1      			pop 	de
+5C79: C1      			pop 	bc
+5C7A: C9      			ret		
+              	
+5C7B:         	__DisplayHexInteger:
+5C7B: 78      			ld 		a,b
+5C7C: CDA75B  			call 	IOWriteCharacter
+5C7F: 23      			inc 	hl
+5C80: 3EBA    			ld 		a,':'+$80
+5C82: CDA75B  			call 	IOWriteCharacter
+5C85: 23      			inc 	hl
+5C86: 7A      			ld 		a,d
+5C87: CD8B5C  			call 	__DisplayHexByte
+5C8A: 7B      			ld 		a,e
+5C8B:         	__DisplayHexByte:
+5C8B: F5      			push 	af
+5C8C: 0F      			rrca
+5C8D: 0F      			rrca
+5C8E: 0F      			rrca
+5C8F: 0F      			rrca
+5C90: CD945C  			call	__DisplayHexNibble
+5C93: F1      			pop 	af
+5C94:         	__DisplayHexNibble:
+5C94: E60F    			and 	$0F
+5C96: FE0A    			cp 		10
+5C98: 3802    			jr 		c,__DisplayIntCh
+5C9A: D639    			sub 	57
+5C9C:         	__DisplayIntCh:
+5C9C: C630    			add 	a,48
+5C9E: B1      			or 		c
+5C9F: CDA75B  			call	IOWriteCharacter
+5CA2: 23      			inc 	hl
+5CA3: C9      			ret
+              	
+              	; @word .h
+5CA4: 3E20    			ld 		a,' '
+5CA6: CD1F5C  			call 	IOPrintCharacter
+5CA9: 7C      			ld 		a,h
+5CAA: CDAE5C  			call 	__PrintByte
+5CAD: 7D      			ld 		a,l
+5CAE:         	__PrintByte:
+5CAE: F5      			push 	af
+5CAF: CB0F    			rrc 	a
+5CB1: CB0F    			rrc 	a
+5CB3: CB0F    			rrc 	a
+5CB5: CB0F    			rrc 	a
+5CB7: CDBB5C  			call 	__PrintNibble
+5CBA: F1      			pop 	af
+5CBB:         	__PrintNibble:
+5CBB: E60F    			and 	15
+5CBD: FE0A    			cp 		10
+5CBF: 3802    			jr 		c,__PNIsDigit
+5CC1: D639    			sub 	48+9
+5CC3:         	__PNIsDigit:
+5CC3: C670    			add 	48+$40
+5CC5: C31F5C  			jp 		IOPrintCharacter
+              	
+              	
+              			include 	"temp/__words.asm"			; constructed file.
+              	
+              	; **** .h word ****
+5CC8:         	definition_2e_68:
+5CC8: C32C5C  	  jp   IOPrintHex
+              	
+              	; **** + macro ****
+5CCB:         	definition_2b_macro:
+5CCB: 01      	 db end_definition_2b_macro-definition_2b_macro-1
+5CCC: 19      	  add  hl,de
+5CCD:         	end_definition_2b_macro:
+              	
+              	; **** nand word ****
+5CCD:         	definition_6e_61_6e_64:
+5CCD: 7C      	  ld   a,h
+5CCE: A3      	  and  e
+5CCF: 2F      	  cpl
+5CD0: 67      	  ld   h,a
+5CD1: 7D      	  ld   a,l
+5CD2: A2      	  and  d
+5CD3: 2F      	  cpl
+5CD4: 6F      	  ld   l,a
+5CD5: C9      	  ret
+              	
+              	; **** 0< word ****
+5CD6:         	definition_30_3c:
+5CD6: CB7C    	  bit  7,h
+5CD8: 210000  	  ld   hl,0
+5CDB: C8      	  ret  z
+5CDC: 2B      	  dec  hl
+5CDD: C9      	  ret
+              	
+              	; **** 0= word ****
+5CDE:         	definition_30_3d:
+5CDE: 7C      	  ld   a,h
+5CDF: B5      	  or   l
+5CE0: 210000  	  ld   hl,0
+5CE3: C0      	  ret  nz
+5CE4: 2B      	  dec  hl
+5CE5: C9      	  ret
+              	
+              	; **** a>r macro ****
+5CE6:         	definition_61_3e_72_macro:
+5CE6: 01      	 db end_definition_61_3e_72_macro-definition_61_3e_72_macro-1
+5CE7: E5      	 push  hl
+5CE8:         	end_definition_61_3e_72_macro:
+              	
+              	; **** b>r macro ****
+5CE8:         	definition_62_3e_72_macro:
+5CE8: 01      	 db end_definition_62_3e_72_macro-definition_62_3e_72_macro-1
+5CE9: D5      	 push  de
+5CEA:         	end_definition_62_3e_72_macro:
+              	
+              	; **** c>r macro ****
+5CEA:         	definition_63_3e_72_macro:
+5CEA: 01      	 db end_definition_63_3e_72_macro-definition_63_3e_72_macro-1
+5CEB: C5      	 push  bc
+5CEC:         	end_definition_63_3e_72_macro:
+              	
+              	; **** ab>r macro ****
+5CEC:         	definition_61_62_3e_72_macro:
+5CEC: 02      	 db end_definition_61_62_3e_72_macro-definition_61_62_3e_72_macro-1
+5CED: D5      	 push  de
+5CEE: E5      	 push  hl
+5CEF:         	end_definition_61_62_3e_72_macro:
+              	
+              	; **** abc>r macro ****
+5CEF:         	definition_61_62_63_3e_72_macro:
+5CEF: 03      	 db end_definition_61_62_63_3e_72_macro-definition_61_62_63_3e_72_macro-1
+5CF0: C5      	 push  bc
+5CF1: D5      	 push  de
+5CF2: E5      	 push  hl
+5CF3:         	end_definition_61_62_63_3e_72_macro:
+              	
+              	; **** r>a macro ****
+5CF3:         	definition_72_3e_61_macro:
+5CF3: 01      	 db end_definition_72_3e_61_macro-definition_72_3e_61_macro-1
+5CF4: E1      	 pop  hl
+5CF5:         	end_definition_72_3e_61_macro:
+              	
+              	; **** r>b macro ****
+5CF5:         	definition_72_3e_62_macro:
+5CF5: 01      	 db end_definition_72_3e_62_macro-definition_72_3e_62_macro-1
+5CF6: D1      	 pop  de
+5CF7:         	end_definition_72_3e_62_macro:
+              	
+              	; **** r>c macro ****
+5CF7:         	definition_72_3e_63_macro:
+5CF7: 01      	 db end_definition_72_3e_63_macro-definition_72_3e_63_macro-1
+5CF8: C1      	 pop  bc
+5CF9:         	end_definition_72_3e_63_macro:
+              	
+              	; **** r>ab macro ****
+5CF9:         	definition_72_3e_61_62_macro:
+5CF9: 02      	 db end_definition_72_3e_61_62_macro-definition_72_3e_61_62_macro-1
+5CFA: E1      	 pop  hl
+5CFB: D1      	 pop  de
+5CFC:         	end_definition_72_3e_61_62_macro:
+              	
+              	; **** r>abc macro ****
+5CFC:         	definition_72_3e_61_62_63_macro:
+5CFC: 03      	 db end_definition_72_3e_61_62_63_macro-definition_72_3e_61_62_63_macro-1
+5CFD: E1      	 pop  hl
+5CFE: D1      	 pop  de
+5CFF: C1      	 pop  bc
+5D00:         	end_definition_72_3e_61_62_63_macro:
+              	
+              	; **** c! macro ****
+5D00:         	definition_63_21_macro:
+5D00: 01      	 db end_definition_63_21_macro-definition_63_21_macro-1
+5D01: 73      	  ld   (hl),e
+5D02:         	end_definition_63_21_macro:
+              	
+              	; **** ! macro ****
+5D02:         	definition_21_macro:
+5D02: 04      	 db end_definition_21_macro-definition_21_macro-1
+5D03: 73      	  ld   (hl),e
+5D04: 23      	  inc  hl
+5D05: 72      	  ld   (hl),d
+5D06: 2B      	  dec  hl
+5D07:         	end_definition_21_macro:
+              	
+              	; **** c@ macro ****
+5D07:         	definition_63_40_macro:
+5D07: 03      	 db end_definition_63_40_macro-definition_63_40_macro-1
+5D08: 6E      	  ld   l,(hl)
+5D09: 2600    	  ld   h,0
+5D0B:         	end_definition_63_40_macro:
+              	
+              	; **** @ macro ****
+5D0B:         	definition_40_macro:
+5D0B: 04      	 db end_definition_40_macro-definition_40_macro-1
+5D0C: 7E      	  ld   a,(hl)
+5D0D: 23      	  inc  hl
+5D0E: 66      	  ld   h,(hl)
+5D0F: 6F      	  ld   l,a
+5D10:         	end_definition_40_macro:
+              	
+              	; **** clr.screen word ****
+5D10:         	definition_63_6c_72_2e_73_63_72_65_65_6e:
+5D10: C3875B  	  jp   IOClearScreen
+              	
+              	; **** cursor! word ****
+5D13:         	definition_63_75_72_73_6f_72_21:
+5D13: C3695B  	  jp   IOSetCursor
+              	
+              	; **** debug word ****
+5D16:         	definition_64_65_62_75_67:
+5D16: C3515C  	  jp   DebugCode
+              	
+              	; **** key@ word ****
+5D19:         	definition_6b_65_79_40:
+5D19: 210000  	  ld   hl,$0000
+5D1C: C9      	  ret
+              	
+              	; **** screen! word ****
+5D1D:         	definition_73_63_72_65_65_6e_21:
+5D1D: 7B      	  ld   a,e
+5D1E: C3A75B  	  jp   IOWriteCharacter
+              	
+              	; **** halt word ****
+5D21:         	definition_68_61_6c_74:
+5D21:         	HaltSystem:
+5D21: F3      	  di
+5D22:         	__halt1:
+5D22: 76      	  halt
+5D23: 18FD    	  jr   __halt1
+              	
+              	; **** port@ word ****
+5D25:         	definition_70_6f_72_74_40:
+5D25: C5      	  push  bc
+5D26: 44      	  ld   b,h
+5D27: 4D      	  ld   c,l
+5D28: ED68    	  in   l,(c)
+5D2A: C1      	  pop  bc
+5D2B: C9      	  ret
+              	
+              	; **** port! word ****
+5D2C:         	definition_70_6f_72_74_21:
+5D2C: C5      	  push  bc
+5D2D: 44      	  ld   b,h
+5D2E: 4D      	  ld   c,l
+5D2F: ED59    	  out  (c),e
+5D31: C1      	  pop  bc
+5D32: C9      	  ret
+              	
+              	; **** a>b macro ****
+5D33:         	definition_61_3e_62_macro:
+5D33: 02      	 db end_definition_61_3e_62_macro-definition_61_3e_62_macro-1
+5D34: 54      	  ld   d,h
+5D35: 5D      	  ld  e,l
+5D36:         	end_definition_61_3e_62_macro:
+              	
+              	; **** a>c macro ****
+5D36:         	definition_61_3e_63_macro:
+5D36: 02      	 db end_definition_61_3e_63_macro-definition_61_3e_63_macro-1
+5D37: 44      	  ld   b,h
+5D38: 4D      	  ld  c,l
+5D39:         	end_definition_61_3e_63_macro:
+              	
+              	; **** b>a macro ****
+5D39:         	definition_62_3e_61_macro:
+5D39: 02      	 db end_definition_62_3e_61_macro-definition_62_3e_61_macro-1
+5D3A: 62      	  ld   h,d
+5D3B: 6B      	  ld  l,e
+5D3C:         	end_definition_62_3e_61_macro:
+              	
+              	; **** b>c macro ****
+5D3C:         	definition_62_3e_63_macro:
+5D3C: 02      	 db end_definition_62_3e_63_macro-definition_62_3e_63_macro-1
+5D3D: 42      	  ld   b,d
+5D3E: 4B      	  ld  c,e
+5D3F:         	end_definition_62_3e_63_macro:
+              	
+              	; **** c>a macro ****
+5D3F:         	definition_63_3e_61_macro:
+5D3F: 02      	 db end_definition_63_3e_61_macro-definition_63_3e_61_macro-1
+5D40: 60      	  ld   h,b
+5D41: 69      	  ld  l,c
+5D42:         	end_definition_63_3e_61_macro:
+              	
+              	; **** c>b macro ****
+5D42:         	definition_63_3e_62_macro:
+5D42: 02      	 db end_definition_63_3e_62_macro-definition_63_3e_62_macro-1
+5D43: 50      	  ld   d,b
+5D44: 59      	  ld  e,c
+5D45:         	end_definition_63_3e_62_macro:
+              	
+              	; **** swap macro ****
+5D45:         	definition_73_77_61_70_macro:
+5D45: 01      	 db end_definition_73_77_61_70_macro-definition_73_77_61_70_macro-1
+5D46: EB      	  ex   de,hl
+5D47:         	end_definition_73_77_61_70_macro:
+              	
+              	; **** sys.info macro ****
+5D47:         	definition_73_79_73_2e_69_6e_66_6f_macro:
+5D47: 04      	 db end_definition_73_79_73_2e_69_6e_66_6f_macro-definition_73_79_73_2e_69_6e_66_6f_macro-1
+5D48: EB      	  ex   de,hl
+5D49: 21025B  	  ld   hl,SystemInformation
+5D4C:         	end_definition_73_79_73_2e_69_6e_66_6f_macro:
+              	
+              	; **** wordsize* macro ****
+5D4C:         	definition_77_6f_72_64_73_69_7a_65_2a_macro:
+5D4C: 01      	 db end_definition_77_6f_72_64_73_69_7a_65_2a_macro-definition_77_6f_72_64_73_69_7a_65_2a_macro-1
+5D4D: 29      	  add  hl,hl
+5D4E:         	end_definition_77_6f_72_64_73_69_7a_65_2a_macro:
+              	
+5D4E: FFFFFFFF			ds 			128
+5D52: FF...   	
+5DCE:         	StackTop:
+5DCE: 0000    			dw 			0
+              	
+5DD0:         	FreeMemory:
+
+
+; +++ segments +++
+
+#CODE          = $5B00 = 23296,  size = $02D0 =   720
+
+; +++ global symbols +++
+
+Boot                                = $5B12 = 23314          kernel.asm:30
+ColdStart                           = $5B00 = 23296          kernel.asm:13
+DebugCode                           = $5C51 = 23633          debug.asm:12
+Div16_Loop1                         = $5B48 = 23368          divide.asm:27
+Div16_Loop2                         = $5B59 = 23385          divide.asm:41
+Div16_NoAdd1                        = $5B50 = 23376          divide.asm:33
+Div16_NoAdd2                        = $5B61 = 23393          divide.asm:47
+DivideMod16                         = $5B3E = 23358          divide.asm:18 (unused)
+FreeMemory                          = $5DD0 = 24016          kernel.asm:50
+HaltSystem                          = $5D21 = 23841          __words.asm:162
+IOClearScreen                       = $5B87 = 23431          hardware.asm:49
+IOColours                           = $5C19 = 23577          hardware.asm:203
+IOCursorPosition                    = $5C1D = 23581          hardware.asm:209
+IOPrintCharacter                    = $5C1F = 23583          hardware.asm:218
+IOPrintHex                          = $5C2C = 23596          hardware.asm:233
+IOScreenHeight                      = $0018 =    24          hardware.asm:13
+IOScreenWidth                       = $0020 =    32          hardware.asm:12
+IOSetCursor                         = $5B69 = 23401          hardware.asm:22
+IOWriteCharacter                    = $5BA7 = 23463          hardware.asm:78
+MainAddress                         = $5B0C = 23308          kernel.asm:23
+Multiply16                          = $5B24 = 23332          multiply.asm:18 (unused)
+StackReset                          = $5B10 = 23312          kernel.asm:27
+StackTop                            = $5DCE = 24014          kernel.asm:47
+SystemInformation                   = $5B02 = 23298          kernel.asm:16
+__Core__Mult_Loop                   = $5B2B = 23339          multiply.asm:24
+__Core__Mult_Shift                  = $5B30 = 23344          multiply.asm:28
+__DisplayHexByte                    = $5C8B = 23691          debug.asm:52
+__DisplayHexInteger                 = $5C7B = 23675          debug.asm:42
+__DisplayHexNibble                  = $5C94 = 23700          debug.asm:60
+__DisplayIntCh                      = $5C9C = 23708          debug.asm:65
+__IOPNDigit                         = $5C4B = 23627          hardware.asm:252
+__IOPrintByte                       = $5C36 = 23606          hardware.asm:239
+__IOPrintNibble                     = $5C43 = 23619          hardware.asm:247
+__PNIsDigit                         = $5CC3 = 23747          debug.asm:91
+__PrintByte                         = $5CAE = 23726          debug.asm:78
+__PrintNibble                       = $5CBB = 23739          debug.asm:86
+__cs1                               = $5B8C = 23436          hardware.asm:53
+__cs2                               = $5B94 = 23444          hardware.asm:58
+__halt1                             = $5D22 = 23842          __words.asm:164
+__scexit                            = $5B7F = 23423          hardware.asm:36
+__wc2                               = $5BDA = 23514          hardware.asm:123
+__wcexit                            = $5C14 = 23572          hardware.asm:192
+_end                                = $5DD0 = 24016          kernel.asm:11 (unused)
+_size                               = $02D0 =   720          kernel.asm:11 (unused)
+definition_21_macro                 = $5D02 = 23810          __words.asm:114
+definition_2b_macro                 = $5CCB = 23755          __words.asm:7
+definition_2e_68                    = $5CC8 = 23752          __words.asm:3 (unused)
+definition_30_3c                    = $5CD6 = 23766          __words.asm:25 (unused)
+definition_30_3d                    = $5CDE = 23774          __words.asm:33 (unused)
+definition_40_macro                 = $5D0B = 23819          __words.asm:130
+definition_61_3e_62_macro           = $5D33 = 23859          __words.asm:187
+definition_61_3e_63_macro           = $5D36 = 23862          __words.asm:194
+definition_61_3e_72_macro           = $5CE6 = 23782          __words.asm:42
+definition_61_62_3e_72_macro        = $5CEC = 23788          __words.asm:60
+definition_61_62_63_3e_72_macro     = $5CEF = 23791          __words.asm:67
+definition_62_3e_61_macro           = $5D39 = 23865          __words.asm:201
+definition_62_3e_63_macro           = $5D3C = 23868          __words.asm:208
+definition_62_3e_72_macro           = $5CE8 = 23784          __words.asm:48
+definition_63_21_macro              = $5D00 = 23808          __words.asm:108
+definition_63_3e_61_macro           = $5D3F = 23871          __words.asm:215
+definition_63_3e_62_macro           = $5D42 = 23874          __words.asm:222
+definition_63_3e_72_macro           = $5CEA = 23786          __words.asm:54
+definition_63_40_macro              = $5D07 = 23815          __words.asm:123
+definition_63_6c_72_2e_73_63_72_65_65_6e = $5D10 = 23824          __words.asm:139 (unused)
+definition_63_75_72_73_6f_72_21     = $5D13 = 23827          __words.asm:143 (unused)
+definition_64_65_62_75_67           = $5D16 = 23830          __words.asm:147 (unused)
+definition_68_61_6c_74              = $5D21 = 23841          __words.asm:161 (unused)
+definition_6b_65_79_40              = $5D19 = 23833          __words.asm:151 (unused)
+definition_6e_61_6e_64              = $5CCD = 23757          __words.asm:13 (unused)
+definition_70_6f_72_74_21           = $5D2C = 23852          __words.asm:178 (unused)
+definition_70_6f_72_74_40           = $5D25 = 23845          __words.asm:169 (unused)
+definition_72_3e_61_62_63_macro     = $5CFC = 23804          __words.asm:100
+definition_72_3e_61_62_macro        = $5CF9 = 23801          __words.asm:93
+definition_72_3e_61_macro           = $5CF3 = 23795          __words.asm:75
+definition_72_3e_62_macro           = $5CF5 = 23797          __words.asm:81
+definition_72_3e_63_macro           = $5CF7 = 23799          __words.asm:87
+definition_73_63_72_65_65_6e_21     = $5D1D = 23837          __words.asm:156 (unused)
+definition_73_77_61_70_macro        = $5D45 = 23877          __words.asm:229
+definition_73_79_73_2e_69_6e_66_6f_macro = $5D47 = 23879          __words.asm:235
+definition_77_6f_72_64_73_69_7a_65_2a_macro = $5D4C = 23884          __words.asm:242
+end_definition_21_macro             = $5D07 = 23815          __words.asm:120
+end_definition_2b_macro             = $5CCD = 23757          __words.asm:10
+end_definition_40_macro             = $5D10 = 23824          __words.asm:136
+end_definition_61_3e_62_macro       = $5D36 = 23862          __words.asm:191
+end_definition_61_3e_63_macro       = $5D39 = 23865          __words.asm:198
+end_definition_61_3e_72_macro       = $5CE8 = 23784          __words.asm:45
+end_definition_61_62_3e_72_macro    = $5CEF = 23791          __words.asm:64
+end_definition_61_62_63_3e_72_macro = $5CF3 = 23795          __words.asm:72
+end_definition_62_3e_61_macro       = $5D3C = 23868          __words.asm:205
+end_definition_62_3e_63_macro       = $5D3F = 23871          __words.asm:212
+end_definition_62_3e_72_macro       = $5CEA = 23786          __words.asm:51
+end_definition_63_21_macro          = $5D02 = 23810          __words.asm:111
+end_definition_63_3e_61_macro       = $5D42 = 23874          __words.asm:219
+end_definition_63_3e_62_macro       = $5D45 = 23877          __words.asm:226
+end_definition_63_3e_72_macro       = $5CEC = 23788          __words.asm:57
+end_definition_63_40_macro          = $5D0B = 23819          __words.asm:127
+end_definition_72_3e_61_62_63_macro = $5D00 = 23808          __words.asm:105
+end_definition_72_3e_61_62_macro    = $5CFC = 23804          __words.asm:97
+end_definition_72_3e_61_macro       = $5CF5 = 23797          __words.asm:78
+end_definition_72_3e_62_macro       = $5CF7 = 23799          __words.asm:84
+end_definition_72_3e_63_macro       = $5CF9 = 23801          __words.asm:90
+end_definition_73_77_61_70_macro    = $5D47 = 23879          __words.asm:232
+end_definition_73_79_73_2e_69_6e_66_6f_macro = $5D4C = 23884          __words.asm:239
+end_definition_77_6f_72_64_73_69_7a_65_2a_macro = $5D4E = 23886          __words.asm:245
+
+
+total time: 0.0028 sec.
+no errors

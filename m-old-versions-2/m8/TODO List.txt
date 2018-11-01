@@ -1,0 +1,19 @@
+TODO List
+=========
+
+	Negative constants
+	Hex and Decimal Constant decoder
+	Coding for variable@ variable! options
+	Add variable word
+	Add array word
+	Error code works properly.
+	Array type arr[] does ld bc,<array> add hl,bc
+	No immediates in command line entry ?
+
+Paging:
+
+	CompileByte needs to be page ready
+	Compiler.Boot word needs to work outside first page.
+	Compiler.Word needs to generate calls for paged routines.
+	Variables and Arrays must be accessed in the same page.
+	

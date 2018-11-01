@@ -1,0 +1,5 @@
+: demo 42 32766 ;
+: test 
+	compiler.boot (* this tells the system to boot from here *)
+
+demo demo debug halt ;

@@ -1,0 +1,20 @@
+:make.address 1 or.type.id macro ;
+
+:sample ;
+
+make.address
+
+:demo 
+
+clr.screen
+
+46089 41251
+
+7525 28330 < .h
+
+brk sample 
+
+debug halt 
+
+[demo]
+

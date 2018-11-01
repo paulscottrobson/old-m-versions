@@ -1,0 +1,22 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  buffer.reset
+;;      Type  word
+;
+;;$		Resets the buffer scan pointer so that we can scan input
+;;$ 	for words.
+;
+; ****************************************************************
+; ****************************************************************
+
+		push 	hl
+		ld 		hl,editBuffer
+		ld 		(bufferScanPointer),hl
+		pop 	hl
+		ret
+
+bufferScanPointer:
+		dw 		0
+
+		

@@ -1,0 +1,9 @@
+General
+=======
+- Page call code in paging.asm if call to different page or any call from $8000-$BFFF
+- start on libraries (convert mz ?) 
+- build system on top of that.
+- build with core and libraries and system present
+
+
+

@@ -1,0 +1,1304 @@
+ AS V1.42 Beta [Bld 115] - source file system.asm - page 1 - 20/8/2018 22:55:30
+
+
+       1/       0 :                     ; ****************************************************************************************
+       2/       0 :                     ; ****************************************************************************************
+       3/       0 :                     ;
+       4/       0 :                     ;		Name:		system.asm
+       5/       0 :                     ;		Purpose:	Base file for M8 Core
+       6/       0 :                     ;		Date:		15th August 2018
+       7/       0 :                     ;		Author:		Paul Robson (paul@robsons.org.uk)
+       8/       0 :                     ;
+       9/       0 :                     ; ****************************************************************************************
+      10/       0 :                     ; ****************************************************************************************
+      11/       0 :                     
+      12/       0 :                     		cpu 	z80
+      13/    5B00 :                     		org 	5B00h
+      14/    5B00 : ED 7B 3A 82         		ld 		sp,(SIStack)						; set up stack.
+      15/    5B04 : CD 1E 5C            		call 	IOClearScreen 						; clear screen
+      16/    5B07 : 2A 38 82            		ld 		hl,(SIRuntimeAddress)				; this is where you run from (initially Halt code)
+      17/    5B0A : E9                  		jp 		(hl)								; go there
+      18/    5B0B :                     
+      19/    5C00 :                     		org 	5C00h								; allow space for the stack
+      20/    5C00 :                     Z80Stack:		
+      21/    5C00 :                     		include "asm/hardware.asm"					; console routines
+(1)    1/    5C00 :                     ; *********************************************************************************
+(1)    2/    5C00 :                     ; *********************************************************************************
+(1)    3/    5C00 :                     ;
+(1)    4/    5C00 :                     ;		File:		hardware.asm
+(1)    5/    5C00 :                     ;		Purpose:	Hardware interface to Spectrum
+(1)    6/    5C00 :                     ;		Date:		15th June 2018
+(1)    7/    5C00 :                     ;		Author:		paul@robsons.org.uk
+(1)    8/    5C00 :                     ;
+(1)    9/    5C00 :                     ; *********************************************************************************
+(1)   10/    5C00 :                     ; *********************************************************************************
+(1)   11/    5C00 :                     	
+(1)   12/    5C00 : =20H                IOScreenWidth = 32 									; screen size
+(1)   13/    5C00 : =18H                IOScreenHeight = 24
+(1)   14/    5C00 : =14H                IOConsoleDisplayLines = 20 
+(1)   15/    5C00 :                     
+(1)   16/    5C00 :                     ; *********************************************************************************
+(1)   17/    5C00 :                     ;
+(1)   18/    5C00 :                     ;		Set the current display cursor position to the offset specified in
+(1)   19/    5C00 :                     ;		the lower 10 bits of HL.
+(1)   20/    5C00 :                     ;
+(1)   21/    5C00 :                     ; *********************************************************************************
+(1)   22/    5C00 :                     
+(1)   23/    5C00 :                     IOSetCursor:
+(1)   24/    5C00 : F5                  		push 	af									; save registers
+(1)   25/    5C01 : E5                  		push 	hl
+(1)   26/    5C02 : 2A 7B 5D            		ld 		hl,(IOCursorPosition)				; remove old cursor
+(1)   27/    5C05 : CB BE               		res 	7,(hl)
+(1)   28/    5C07 : E1                  		pop 	hl
+(1)   29/    5C08 : E5                  		push 	hl
+(1)   30/    5C09 : 7C                  		ld 		a,h 								; convert new cursor to attr pos
+(1)   31/    5C0A : E6 03               		and 	03h
+(1)   32/    5C0C : FE 03               		cp 		3 									; cursor position out of range
+(1)   33/    5C0E : 28 06               		jr 		z,__scexit							; don't update
+(1)   34/    5C10 : F6 58               		or 		58h
+(1)   35/    5C12 : 67                  		ld 		h,a
+(1)   36/    5C13 : 22 7B 5D            		ld 		(IOCursorPosition),hl
+(1)   37/    5C16 :                     __scexit:		
+(1)   38/    5C16 : 2A 7B 5D            		ld 		hl,(IOCursorPosition)				; show new cursor
+(1)   39/    5C19 : CB FE               		set 	7,(hl)		
+ AS V1.42 Beta [Bld 115] - source file system.asm(hardware.asm) - page 2 - 20/8/2018 22:55:30
+
+
+(1)   40/    5C1B : E1                   		pop		hl
+(1)   41/    5C1C : F1                  		pop 	af
+(1)   42/    5C1D : C9                  		ret
+(1)   43/    5C1E :                     
+(1)   44/    5C1E :                     ; *********************************************************************************
+(1)   45/    5C1E :                     ;
+(1)   46/    5C1E :                     ;								Clear the screen
+(1)   47/    5C1E :                     ;
+(1)   48/    5C1E :                     ; *********************************************************************************
+(1)   49/    5C1E :                     
+(1)   50/    5C1E :                     IOClearScreen:
+(1)   51/    5C1E : F5                  		push 	af 									; save registers
+(1)   52/    5C1F : E5                  		push 	hl
+(1)   53/    5C20 : 21 00 40            		ld 		hl,4000h 							; clear pixel memory
+(1)   54/    5C23 : 36 00               __cs1:	ld 		(hl),0
+(1)   55/    5C25 : 23                  		inc 	hl
+(1)   56/    5C26 : 7C                  		ld 		a,h
+(1)   57/    5C27 : FE 58               		cp 		58h
+(1)   58/    5C29 : 20 F8               		jr 		nz,__cs1
+(1)   59/    5C2B : 36 47               __cs2:	ld 		(hl),47h							; clear attribute memory
+(1)   60/    5C2D : 23                  		inc 	hl
+(1)   61/    5C2E : 7C                  		ld 		a,h
+(1)   62/    5C2F : FE 5B               		cp 		5Bh
+(1)   63/    5C31 : 20 F8               		jr 		nz,__cs2		
+(1)   64/    5C33 : 2A 7B 5D            		ld 		hl,(IOCursorPosition)				; reset cursor bit
+(1)   65/    5C36 : CB FE               		set 	7,(hl)
+(1)   66/    5C38 : AF                  		xor 	a 									; border off
+(1)   67/    5C39 : D3 FE               		out 	(0FEh),a
+(1)   68/    5C3B : E1                  		pop 	hl 									; restore and exit.
+(1)   69/    5C3C : F1                  		pop 	af
+(1)   70/    5C3D : C9                  		ret
+(1)   71/    5C3E :                     
+(1)   72/    5C3E :                     ; *********************************************************************************
+(1)   73/    5C3E :                     ;
+(1)   74/    5C3E :                     ;	Write a character A on the screen at HL. HL is bits 0-9, A is a 2+6 bit
+(1)   75/    5C3E :                     ;	colour / character.
+(1)   76/    5C3E :                     ;
+(1)   77/    5C3E :                     ; *********************************************************************************
+(1)   78/    5C3E :                     
+(1)   79/    5C3E :                     IOWriteCharacter:
+(1)   80/    5C3E : F5                  		push 	af 									; save registers
+(1)   81/    5C3F : C5                  		push 	bc
+(1)   82/    5C40 : D5                  		push 	de
+(1)   83/    5C41 : E5                  		push 	hl
+(1)   84/    5C42 :                     
+(1)   85/    5C42 : 4F                  		ld 		c,a 								; save character in C
+(1)   86/    5C43 :                     
+(1)   87/    5C43 : 7C                  		ld 		a,h 								; check H in range 0-2
+(1)   88/    5C44 : E6 03               		and 	3
+(1)   89/    5C46 : FE 03               		cp 		3
+(1)   90/    5C48 : 28 61               		jr 		z,__wcexit
+(1)   91/    5C4A :                     
+(1)   92/    5C4A : E5                  		push 	hl 									; save screen address
+(1)   93/    5C4B :                     ;
+(1)   94/    5C4B :                     ;		update attribute
+(1)   95/    5C4B :                     ;
+(1)   96/    5C4B : 7C                  		ld 		a,h 								; convert to attribute position
+(1)   97/    5C4C : E6 03               		and 	03h
+(1)   98/    5C4E : F6 58               		or 		58h
+(1)   99/    5C50 : 67                  		ld 		h,a
+ AS V1.42 Beta [Bld 115] - source file system.asm(hardware.asm) - page 3 - 20/8/2018 22:55:30
+
+
+(1)  100/    5C51 :                     
+(1)  101/    5C51 : 79                  		ld 		a,c 								; rotate left twice
+(1)  102/    5C52 : 07                  		rlca
+(1)  103/    5C53 : 07                  		rlca
+(1)  104/    5C54 : E6 03               		and 	3 									; now a value 0-3
+(1)  105/    5C56 : C6 77               		add 	a,__wc_colours & 255 				; add __wc_colours, put in DE
+(1)  106/    5C58 : 5F                  		ld 		e,a
+(1)  107/    5C59 : 3E 5D               		ld 		a,__wc_colours / 256
+(1)  108/    5C5B : CE 00               		adc 	a,0
+(1)  109/    5C5D : 57                  		ld 		d,a
+(1)  110/    5C5E : 1A                  		ld 		a,(de)								; get colours.
+(1)  111/    5C5F : 77                  		ld 		(hl),a
+(1)  112/    5C60 :                     ;
+(1)  113/    5C60 :                     ;		char# 0-63 to font address
+(1)  114/    5C60 :                     ;
+(1)  115/    5C60 : 79                  		ld 		a,c 								; A = char#
+(1)  116/    5C61 : E6 3F               		and 	3Fh 								; bits 0-6 only
+(1)  117/    5C63 : EE 20               		xor 	20h									; make it 7 bit.
+(1)  118/    5C65 : C6 20               		add 	a,20h		
+(1)  119/    5C67 : FE 41               		cp 		'A' 								; make it lower case
+(1)  120/    5C69 : 38 06               		jr 		c,__wc2
+(1)  121/    5C6B : FE 5B               		cp 		'Z'+1
+(1)  122/    5C6D : 30 02               		jr 		nc,__wc2
+(1)  123/    5C6F : C6 20               		add 	a,20h
+(1)  124/    5C71 :                     __wc2:
+(1)  125/    5C71 : 6F                  		ld 		l,a 								; put in HL
+(1)  126/    5C72 : 26 00               		ld 		h,0
+(1)  127/    5C74 : 29                  		add 	hl,hl 								; x 8
+(1)  128/    5C75 : 29                  		add 	hl,hl
+(1)  129/    5C76 : 29                  		add 	hl,hl
+(1)  130/    5C77 : 11 00 3C            		ld 		de,3C00h 							; add $3C00
+(1)  131/    5C7A : 19                  		add 	hl,de
+(1)  132/    5C7B : EB                  		ex 		de,hl 								; put in DE (font address)
+(1)  133/    5C7C :                     ;
+(1)  134/    5C7C :                     ;		screen position 0-767 to screen address
+(1)  135/    5C7C :                     ;
+(1)  136/    5C7C : E1                  		pop 	hl 									; restore screen address
+(1)  137/    5C7D : 7C                  		ld 		a,h 								; L contains Y5-Y3,X4-X0. Get H
+(1)  138/    5C7E : E6 03               		and 	03h 								; lower 2 bits (Y7,Y6)
+(1)  139/    5C80 : 87                  		add 	a,a 								; shift left three times
+(1)  140/    5C81 : 87                  		add 	a,a
+(1)  141/    5C82 : 87                  		add 	a,a
+(1)  142/    5C83 : F6 40               		or 		40h 								; set bit 6, HL now points to VRAM.		
+(1)  143/    5C85 : 67                  		ld 		h,a 								; put it back in H.
+(1)  144/    5C86 :                     ;
+(1)  145/    5C86 :                     ;		copy font data to screen position.
+(1)  146/    5C86 :                     ;
+(1)  147/    5C86 :                     ;
+(1)  148/    5C86 :                     ;		ld 		b,8 								; copy 8 characters
+(1)  149/    5C86 :                     
+(1)  150/    5C86 : 1A                  		ld 		a,(de)								; 0
+(1)  151/    5C87 : 77                  		ld 		(hl),a
+(1)  152/    5C88 : 24                  		inc 	h
+(1)  153/    5C89 : 13                  		inc 	de
+(1)  154/    5C8A :                     
+(1)  155/    5C8A : 1A                  		ld 		a,(de)								; 1
+(1)  156/    5C8B : 77                  		ld 		(hl),a
+(1)  157/    5C8C : 24                  		inc 	h
+(1)  158/    5C8D : 13                  		inc 	de
+(1)  159/    5C8E :                     
+ AS V1.42 Beta [Bld 115] - source file system.asm(hardware.asm) - page 4 - 20/8/2018 22:55:30
+
+
+(1)  160/    5C8E : 1A                  		ld 		a,(de)								; 2
+(1)  161/    5C8F : 77                  		ld 		(hl),a
+(1)  162/    5C90 : 24                  		inc 	h
+(1)  163/    5C91 : 13                  		inc 	de
+(1)  164/    5C92 :                     
+(1)  165/    5C92 : 1A                  		ld 		a,(de)								; 3
+(1)  166/    5C93 : 77                  		ld 		(hl),a
+(1)  167/    5C94 : 24                  		inc 	h
+(1)  168/    5C95 : 13                  		inc 	de
+(1)  169/    5C96 :                     
+(1)  170/    5C96 : 1A                  		ld 		a,(de)								; 4
+(1)  171/    5C97 : 77                  		ld 		(hl),a
+(1)  172/    5C98 : 24                  		inc 	h
+(1)  173/    5C99 : 13                  		inc 	de
+(1)  174/    5C9A :                     
+(1)  175/    5C9A : 1A                  		ld 		a,(de)								; 5
+(1)  176/    5C9B : 77                  		ld 		(hl),a
+(1)  177/    5C9C : 24                  		inc 	h
+(1)  178/    5C9D : 13                  		inc 	de
+(1)  179/    5C9E :                     
+(1)  180/    5C9E : 1A                  		ld 		a,(de)								; 6
+(1)  181/    5C9F : 77                  		ld 		(hl),a
+(1)  182/    5CA0 : 24                  		inc 	h
+(1)  183/    5CA1 : 13                  		inc 	de
+(1)  184/    5CA2 :                     
+(1)  185/    5CA2 : 1A                  		ld 		a,(de)								; 7
+(1)  186/    5CA3 : 77                  		ld 		(hl),a
+(1)  187/    5CA4 : 24                  		inc 	h
+(1)  188/    5CA5 : 13                  		inc 	de
+(1)  189/    5CA6 :                     
+(1)  190/    5CA6 : 2A 7B 5D            		ld 		hl,(IOCursorPosition)				; show cursor if we've just overwritten it
+(1)  191/    5CA9 : CB FE               		set 	7,(hl)
+(1)  192/    5CAB :                     
+(1)  193/    5CAB :                     __wcexit:
+(1)  194/    5CAB : E1                  		pop 	hl 									; restore and exit
+(1)  195/    5CAC : D1                  		pop 	de
+(1)  196/    5CAD : C1                  		pop 	bc
+(1)  197/    5CAE : F1                  		pop 	af
+(1)  198/    5CAF : C9                  		ret
+(1)  199/    5CB0 :                     
+(1)  200/    5CB0 :                     ; *********************************************************************************
+(1)  201/    5CB0 :                     ;
+(1)  202/    5CB0 :                     ;			Scan the keyboard, return currently pressed key code in A
+(1)  203/    5CB0 :                     ;
+(1)  204/    5CB0 :                     ; *********************************************************************************
+(1)  205/    5CB0 :                     
+(1)  206/    5CB0 :                     IOScanKeyboard:
+(1)  207/    5CB0 : C5                  		push 	bc
+(1)  208/    5CB1 : D5                  		push 	de
+(1)  209/    5CB2 : E5                  		push 	hl
+(1)  210/    5CB3 :                     
+(1)  211/    5CB3 : 21 FF 5C            		ld 		hl,__kr_no_shift_table 				; firstly identify shift state.
+(1)  212/    5CB6 :                     
+(1)  213/    5CB6 : 3E FE               		ld 		a,0FEh 								; check CAPS SHIFT (emulator : left shift)
+(1)  214/    5CB8 : DB FE               		in 		a,(0FEh)
+(1)  215/    5CBA : CB 47               		bit 	0,a
+(1)  216/    5CBC : 20 03               		jr 		nz,__kr1
+(1)  217/    5CBE : 21 4F 5D            		ld 		hl,__kr_shift_table
+(1)  218/    5CC1 :                     __kr1:
+(1)  219/    5CC1 : 3E 7F               		ld 		a,7Fh 								; check SYMBOL SHIFT (emulator : right shift)
+ AS V1.42 Beta [Bld 115] - source file system.asm(hardware.asm) - page 5 - 20/8/2018 22:55:30
+
+
+(1)  220/    5CC3 : DB FE               		in 		a,(0FEh)
+(1)  221/    5CC5 : CB 4F               		bit 	1,a
+(1)  222/    5CC7 : 20 03               		jr 		nz,__kr2
+(1)  223/    5CC9 : 21 27 5D            		ld 		hl,__kr_symbol_shift_table
+(1)  224/    5CCC :                     __kr2:
+(1)  225/    5CCC :                     
+(1)  226/    5CCC : 1E FE               		ld 		e,0FEh 								; scan pattern.
+(1)  227/    5CCE : 7B                  __kr3:	ld 		a,e 								; work out the mask, so we don't detect shift keys
+(1)  228/    5CCF : 16 1E               		ld 		d,01Eh 								; $FE row, don't check the least significant bit.
+(1)  229/    5CD1 : FE FE               		cp 		0FEh
+(1)  230/    5CD3 : 28 08               		jr 		z,___kr4
+(1)  231/    5CD5 : 16 1D               		ld 		d,01Dh 								; $7F row, don't check the 2nd least significant bit
+(1)  232/    5CD7 : FE 7F               		cp 		7Fh
+(1)  233/    5CD9 : 28 02               		jr 		z,___kr4
+(1)  234/    5CDB : 16 1F               		ld 		d,01Fh 								; check all bits.
+(1)  235/    5CDD :                     ___kr4:
+(1)  236/    5CDD : 7B                  		ld 		a,e 								; scan the keyboard
+(1)  237/    5CDE : DB FE               		in 		a,(0FEh)
+(1)  238/    5CE0 : 2F                  		cpl 										; make that active high.
+(1)  239/    5CE1 : A2                  		and 	d  									; and with check value.
+(1)  240/    5CE2 : 20 11               		jr 		nz,__kr_keypressed 					; exit loop if key pressed.
+(1)  241/    5CE4 :                     
+(1)  242/    5CE4 : 23                  		inc 	hl 									; next set of keyboard characters
+(1)  243/    5CE5 : 23                  		inc 	hl
+(1)  244/    5CE6 : 23                  		inc 	hl
+(1)  245/    5CE7 : 23                  		inc 	hl
+(1)  246/    5CE8 : 23                  		inc 	hl
+(1)  247/    5CE9 :                     
+(1)  248/    5CE9 : 7B                  		ld 		a,e 								; get pattern
+(1)  249/    5CEA : 87                  		add 	a,a 								; shift left
+(1)  250/    5CEB : F6 01               		or 		1 									; set bit 1.
+(1)  251/    5CED : 5F                  		ld 		e,a
+(1)  252/    5CEE :                     
+(1)  253/    5CEE : FE FF               		cp 		0FFh 								; finished when all 1's.
+(1)  254/    5CF0 : 20 DC               		jr 		nz,__kr3 
+(1)  255/    5CF2 : AF                  		xor 	a
+(1)  256/    5CF3 : 18 06               		jr 		__kr_exit 							; no key found, return with zero.
+(1)  257/    5CF5 :                     ;
+(1)  258/    5CF5 :                     __kr_keypressed:
+(1)  259/    5CF5 : 23                  		inc 	hl  								; shift right until carry set
+(1)  260/    5CF6 : 1F                  		rra
+(1)  261/    5CF7 : 30 FC               		jr 		nc,__kr_keypressed
+(1)  262/    5CF9 : 2B                  		dec 	hl 									; undo the last inc hl
+(1)  263/    5CFA : 7E                  		ld 		a,(hl) 								; get the character number.
+(1)  264/    5CFB :                     __kr_exit:
+(1)  265/    5CFB : E1                  		pop 	hl
+(1)  266/    5CFC : D1                  		pop 	de
+(1)  267/    5CFD : C1                  		pop 	bc
+(1)  268/    5CFE : C9                  		ret
+(1)  269/    5CFF :                     
+(1)  270/    5CFF :                     ; *********************************************************************************
+(1)  271/    5CFF :                     ;	 						Keyboard Mapping Tables
+(1)  272/    5CFF :                     ; *********************************************************************************
+(1)  273/    5CFF :                     ;
+(1)  274/    5CFF :                     ;	$FEFE-$7FFE scan, bit 0-4, active low
+(1)  275/    5CFF :                     ;
+(1)  276/    5CFF :                     ;	8:Backspace 13:Return 16:19 colours 0-3 20-23:Left Down Up Right 32-95: Std ASCII
+(1)  277/    5CFF :                     ;
+(1)  278/    5CFF :                     __kr_no_shift_table:
+(1)  279/    5CFF : 00 5A 58 43 56 41   		db 		0,  'Z','X','C','V',			'A','S','D','F','G'
+ AS V1.42 Beta [Bld 115] - source file system.asm(hardware.asm) - page 6 - 20/8/2018 22:55:30
+
+
+                    53 44 46 47 
+(1)  280/    5D09 : 51 57 45 52 54 31   		db 		'Q','W','E','R','T',			'1','2','3','4','5'
+                    32 33 34 35 
+(1)  281/    5D13 : 30 39 38 37 36 50   		db 		'0','9','8','7','6',			'P','O','I','U','Y'
+                    4F 49 55 59 
+(1)  282/    5D1D : 0D 4C 4B 4A 48 20   		db 		13, 'L','K','J','H',			' ', 0, 'M','N','B'
+                    00 4D 4E 42 
+(1)  283/    5D27 :                     
+(1)  284/    5D27 :                     __kr_symbol_shift_table:
+(1)  285/    5D27 : 00 3A 00 3F 2F 7E   		db 		 0, ':', 0,  '?','/',			'~','|','\\','{','}'
+                    7C 5C 7B 7D 
+(1)  286/    5D31 : 00 00 00 3C 3E 21   		db 		 0,  0,  0  ,'<','>',			'!','@','#','$','%'
+                    40 23 24 25 
+(1)  287/    5D3B : 5F 29 28 27 26 22   		db 		'_',')','(',"'",'&',			'"',';', 0, ']','['
+                    3B 00 5D 5B 
+(1)  288/    5D45 : 0D 3D 2B 2D 5E 20   		db 		13, '=','+','-','^',			' ', 0, '.',',','*'
+                    00 2E 2C 2A 
+(1)  289/    5D4F :                     
+(1)  290/    5D4F :                     __kr_shift_table:
+(1)  291/    5D4F : 00 3A 00 3F 2F 7E   		db 		0,  ':',0  ,'?','/',			'~','|','\\','{','}'
+                    7C 5C 7B 7D 
+(1)  292/    5D59 : 00 00 00 3C 3E 10   		db 		0,  0,  0  ,'<','>',			16, 17, 18, 19, 20
+                    11 12 13 14 
+(1)  293/    5D63 : 08 29 17 16 15 22   		db 		8, ')',23,  22, 21,				'"',';', 0, ']','['
+                    3B 00 5D 5B 
+(1)  294/    5D6D : 0D 3D 2B 2D 5E 20   		db 		13, '=','+','-','^',			' ', 0, '.',',','*'
+                    00 2E 2C 2A 
+(1)  295/    5D77 :                     
+(1)  296/    5D77 :                     
+(1)  297/    5D77 :                     ;
+(1)  298/    5D77 :                     ;		colour bit colours
+(1)  299/    5D77 :                     ;
+(1)  300/    5D77 :                     __wc_colours
+(1)  301/    5D77 : 42                  		db 		42h 								; 00 (red)
+(1)  302/    5D78 : 47                  		db 		47h 								; 01 (white)
+(1)  303/    5D79 : 44                  		db 		44h 								; 10 (green)
+(1)  304/    5D7A : 46                  		db 		46h 								; 11 (yellow)
+(1)  305/    5D7B :                     
+(1)  306/    5D7B :                     IOCursorPosition:
+(1)  307/    5D7B : 00 00               		dw 		0
+(1)  308/    5D7D :                     
+(1)  309/    5D7D :                     		
+      22/    5D7D :                     
+      23/    5D7D :                     DictionaryStart:
+      24/    5D7D : 00                  		db 		0									; dictionary goes here.
+      25/    5D7E :                     
+      26/    8000 :                     		org 	8000h 								; program space.
+      27/    8000 :                     		include "asm/multiply.asm"					; arithmetic routines
+(1)    1/    8000 :                     ; *********************************************************************************
+(1)    2/    8000 :                     ; *********************************************************************************
+(1)    3/    8000 :                     ;
+(1)    4/    8000 :                     ;		File:		multiply.asm
+(1)    5/    8000 :                     ;		Purpose:	16 bit unsigned multiply
+(1)    6/    8000 :                     ;		Date:		15th August 2018
+(1)    7/    8000 :                     ;		Author:		paul@robsons.org.uk
+(1)    8/    8000 :                     ;
+(1)    9/    8000 :                     ; *********************************************************************************
+(1)   10/    8000 :                     ; *********************************************************************************
+(1)   11/    8000 :                     
+(1)   12/    8000 :                     ; *********************************************************************************
+ AS V1.42 Beta [Bld 115] - source file system.asm(multiply.asm) - page 7 - 20/8/2018 22:55:30
+
+
+(1)   13/    8000 :                     ;
+(1)   14/    8000 :                     ;								Does HL = HL * DE
+(1)   15/    8000 :                     ;
+(1)   16/    8000 :                     ; *********************************************************************************
+(1)   17/    8000 :                     
+(1)   18/    8000 :                     Multiply16:
+(1)   19/    8000 : C5                  		push 	bc
+(1)   20/    8001 : D5                  		push 	de
+(1)   21/    8002 : 44                  		ld 		b,h 							; get multipliers in DE/BC
+(1)   22/    8003 : 4D                  		ld 		c,l
+(1)   23/    8004 : 21 00 00            		ld 		hl,0 							; zero total
+(1)   24/    8007 :                     __Core__Mult_Loop:
+(1)   25/    8007 : CB 41               		bit 	0,c 							; lsb of shifter is non-zero
+(1)   26/    8009 : 28 01               		jr 		z,__Core__Mult_Shift
+(1)   27/    800B : 19                  		add 	hl,de 							; add adder to total
+(1)   28/    800C :                     __Core__Mult_Shift:
+(1)   29/    800C : CB 38               		srl 	b 								; shift BC right.
+(1)   30/    800E : CB 19               		rr 		c
+(1)   31/    8010 : EB                  		ex 		de,hl 							; shift DE left
+(1)   32/    8011 : 29                  		add 	hl,hl
+(1)   33/    8012 : EB                  		ex 		de,hl
+(1)   34/    8013 : 78                  		ld 		a,b 							; loop back if BC is nonzero
+(1)   35/    8014 : B1                  		or 		c
+(1)   36/    8015 : 20 F0               		jr 		nz,__Core__Mult_Loop
+(1)   37/    8017 : D1                  		pop 	de
+(1)   38/    8018 : C1                  		pop 	bc
+(1)   39/    8019 : C9                  		ret
+      28/    801A :                     		include "asm/divide.asm"			
+(1)    1/    801A :                     ; *********************************************************************************
+(1)    2/    801A :                     ; *********************************************************************************
+(1)    3/    801A :                     ;
+(1)    4/    801A :                     ;		File:		divide.asm
+(1)    5/    801A :                     ;		Purpose:	16 bit unsigned divide
+(1)    6/    801A :                     ;		Date:		15th August 2018
+(1)    7/    801A :                     ;		Author:		paul@robsons.org.uk
+(1)    8/    801A :                     ;
+(1)    9/    801A :                     ; *********************************************************************************
+(1)   10/    801A :                     ; *********************************************************************************
+(1)   11/    801A :                     
+(1)   12/    801A :                     ; *********************************************************************************
+(1)   13/    801A :                     ;
+(1)   14/    801A :                     ;			Calculates DE / HL. On exit DE = result, HL = remainder
+(1)   15/    801A :                     ;
+(1)   16/    801A :                     ; *********************************************************************************
+(1)   17/    801A :                     
+(1)   18/    801A :                     DivideMod16:
+(1)   19/    801A :                     
+(1)   20/    801A : C5                  	push 	bc
+(1)   21/    801B : 42                  	ld 		b,d 				; DE 
+(1)   22/    801C : 4B                  	ld 		c,e
+(1)   23/    801D : EB                  	ex 		de,hl
+(1)   24/    801E : 21 00 00            	ld 		hl,0
+(1)   25/    8021 : 78                  	ld 		a,b
+(1)   26/    8022 : 06 08               	ld 		b,8
+(1)   27/    8024 :                     Div16_Loop1:
+(1)   28/    8024 : 17                  	rla
+(1)   29/    8025 : ED 6A               	adc 	hl,hl
+(1)   30/    8027 : ED 52               	sbc 	hl,de
+(1)   31/    8029 : 30 01               	jr 		nc,Div16_NoAdd1
+(1)   32/    802B : 19                  	add 	hl,de
+ AS V1.42 Beta [Bld 115] - source file system.asm(divide.asm) - page 8 - 20/8/2018 22:55:30
+
+
+(1)   33/    802C :                     Div16_NoAdd1:
+(1)   34/    802C : 10 F6               	djnz 	Div16_Loop1
+(1)   35/    802E : 17                  	rla
+(1)   36/    802F : 2F                  	cpl
+(1)   37/    8030 : 47                  	ld 		b,a
+(1)   38/    8031 : 79                  	ld 		a,c
+(1)   39/    8032 : 48                  	ld 		c,b
+(1)   40/    8033 : 06 08               	ld 		b,8
+(1)   41/    8035 :                     Div16_Loop2:
+(1)   42/    8035 : 17                  	rla
+(1)   43/    8036 : ED 6A               	adc 	hl,hl
+(1)   44/    8038 : ED 52               	sbc 	hl,de
+(1)   45/    803A : 30 01               	jr 		nc,Div16_NoAdd2
+(1)   46/    803C : 19                  	add 	hl,de
+(1)   47/    803D :                     Div16_NoAdd2:
+(1)   48/    803D : 10 F6               	djnz 	Div16_Loop2
+(1)   49/    803F : 17                  	rla
+(1)   50/    8040 : 2F                  	cpl
+(1)   51/    8041 : 51                  	ld 		d,c
+(1)   52/    8042 : 5F                  	ld 		e,a
+(1)   53/    8043 : C1                  	pop 	bc
+(1)   54/    8044 : C9                  	ret
+(1)   55/    8045 :                     	
+      29/    8045 :                     		include "asm/corewords.asm"					; built in words
+(1)    1/    8045 :                     ;
+(1)    2/    8045 :                     ;		automatically generated
+(1)    3/    8045 :                     ;
+(1)    4/    8045 :                     ; ******** con.clear.screen ********
+(1)    5/    8045 :                     define_63_6f_6e_2e_63_6c_65_61_72_2e_73_63_72_65_65_6e_word:
+(1)    6/    8045 : C3 1E 5C              jp   IOClearScreen
+(1)    7/    8048 :                     
+(1)    8/    8048 :                     ; ---------------------------------------------
+(1)    9/    8048 :                     
+(1)   10/    8048 :                     ; ******** con.inkey ********
+(1)   11/    8048 :                     define_63_6f_6e_2e_69_6e_6b_65_79_word:
+(1)   12/    8048 : EB                    ex   de,hl
+(1)   13/    8049 : CD B0 5C              call  IOScanKeyboard
+(1)   14/    804C : 6F                    ld   l,a
+(1)   15/    804D : 26 00                 ld   h,0
+(1)   16/    804F : C9                    ret
+(1)   17/    8050 :                     
+(1)   18/    8050 :                     ; ---------------------------------------------
+(1)   19/    8050 :                     
+(1)   20/    8050 :                     ; ******** con.cursor! ********
+(1)   21/    8050 :                     define_63_6f_6e_2e_63_75_72_73_6f_72_21_word:
+(1)   22/    8050 : C3 00 5C              jp   IOSetCursor
+(1)   23/    8053 :                     
+(1)   24/    8053 :                     ; ---------------------------------------------
+(1)   25/    8053 :                     
+(1)   26/    8053 :                     ; ******** con.screen! ********
+(1)   27/    8053 :                     define_63_6f_6e_2e_73_63_72_65_65_6e_21_word:
+(1)   28/    8053 : 7B                    ld   a,e
+(1)   29/    8054 : C3 3E 5C              jp   IOWriteCharacter
+(1)   30/    8057 :                     
+(1)   31/    8057 :                     ; ---------------------------------------------
+(1)   32/    8057 :                     
+(1)   33/    8057 :                     ; ******** and ********
+(1)   34/    8057 :                     define_61_6e_64_word:
+(1)   35/    8057 : 7C                    ld   a,h
+(1)   36/    8058 : A2                    and  d
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 9 - 20/8/2018 22:55:30
+
+
+(1)   37/    8059 : 67                    ld   h,a
+(1)   38/    805A : 7D                    ld   a,l
+(1)   39/    805B : A3                    and  e
+(1)   40/    805C : 6F                    ld   l,a
+(1)   41/    805D : C9                    ret
+(1)   42/    805E :                     
+(1)   43/    805E :                     ; ---------------------------------------------
+(1)   44/    805E :                     
+(1)   45/    805E :                     ; ******** max ********
+(1)   46/    805E :                     define_6d_61_78_word:
+(1)   47/    805E : AF                    xor  a
+(1)   48/    805F : ED 52                 sbc  hl,de
+(1)   49/    8061 : 7C                    ld   a,h
+(1)   50/    8062 : 19                    add  hl,de
+(1)   51/    8063 : CB 7F                 bit  7,a
+(1)   52/    8065 : C8                    ret  z
+(1)   53/    8066 : 62                    ld   h,d
+(1)   54/    8067 : 6B                    ld   l,e
+(1)   55/    8068 : C9                    ret
+(1)   56/    8069 :                     
+(1)   57/    8069 :                     ; ---------------------------------------------
+(1)   58/    8069 :                     
+(1)   59/    8069 :                     ; ******** min ********
+(1)   60/    8069 :                     define_6d_69_6e_word:
+(1)   61/    8069 : AF                    xor  a
+(1)   62/    806A : ED 52                 sbc  hl,de
+(1)   63/    806C : 7C                    ld   a,h
+(1)   64/    806D : 19                    add  hl,de
+(1)   65/    806E : CB 7F                 bit  7,a
+(1)   66/    8070 : C0                    ret  nz
+(1)   67/    8071 : 62                    ld   h,d
+(1)   68/    8072 : 6B                    ld   l,e
+(1)   69/    8073 : C9                    ret
+(1)   70/    8074 :                     
+(1)   71/    8074 :                     ; ---------------------------------------------
+(1)   72/    8074 :                     
+(1)   73/    8074 :                     ; ******** mod ********
+(1)   74/    8074 :                     define_6d_6f_64_word:
+(1)   75/    8074 : D5                    push   de
+(1)   76/    8075 : CD 1A 80              call   DivideMod16
+(1)   77/    8078 : D1                    pop   de
+(1)   78/    8079 : C9                    ret
+(1)   79/    807A :                     
+(1)   80/    807A :                     ; ---------------------------------------------
+(1)   81/    807A :                     
+(1)   82/    807A :                     ; ******** or ********
+(1)   83/    807A :                     define_6f_72_word:
+(1)   84/    807A : 7C                    ld   a,h
+(1)   85/    807B : B2                    or   d
+(1)   86/    807C : 67                    ld   h,a
+(1)   87/    807D : 7D                    ld   a,l
+(1)   88/    807E : B3                    or   e
+(1)   89/    807F : 6F                    ld   l,a
+(1)   90/    8080 : C9                    ret
+(1)   91/    8081 :                     
+(1)   92/    8081 :                     ; ---------------------------------------------
+(1)   93/    8081 :                     
+(1)   94/    8081 :                     ; ******** / ********
+(1)   95/    8081 :                     define_2f_word:
+(1)   96/    8081 : D5                    push   de
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 10 - 20/8/2018 22:55:30
+
+
+(1)   97/    8082 : CD 1A 80              call   DivideMod16
+(1)   98/    8085 : EB                    ex    de,hl
+(1)   99/    8086 : D1                    pop   de
+(1)  100/    8087 : C9                    ret
+(1)  101/    8088 :                     
+(1)  102/    8088 :                     ; ---------------------------------------------
+(1)  103/    8088 :                     
+(1)  104/    8088 :                     ; ******** = ********
+(1)  105/    8088 :                     define_3d_word:
+(1)  106/    8088 : 7C                    ld   a,h
+(1)  107/    8089 : BA                    cp   d
+(1)  108/    808A : 20 08                 jr   nz,SetFalse
+(1)  109/    808C : 7D                    ld   a,l
+(1)  110/    808D : BB                    cp   e
+(1)  111/    808E : 20 04                 jr   nz,SetFalse
+(1)  112/    8090 :                     SetTrue:
+(1)  113/    8090 : 21 FF FF              ld   hl,0FFFFh
+(1)  114/    8093 : C9                    ret
+(1)  115/    8094 :                     SetFalse:
+(1)  116/    8094 : 21 00 00              ld   hl,00000h
+(1)  117/    8097 : C9                    ret
+(1)  118/    8098 :                     
+(1)  119/    8098 :                     ; ---------------------------------------------
+(1)  120/    8098 :                     
+(1)  121/    8098 :                     ; ******** > ********
+(1)  122/    8098 :                     define_3e_word:
+(1)  123/    8098 :                     __Greater:
+(1)  124/    8098 : AF                    xor  a
+(1)  125/    8099 : ED 52                 sbc  hl,de
+(1)  126/    809B : 7C                    ld   a,h
+(1)  127/    809C : 19                    add  hl,de
+(1)  128/    809D : CB 7F                 bit  7,a
+(1)  129/    809F : 20 EF                 jr   nz,SetTrue
+(1)  130/    80A1 : 18 F1                 jr   SetFalse
+(1)  131/    80A3 : C9                    ret
+(1)  132/    80A4 :                     
+(1)  133/    80A4 :                     ; ---------------------------------------------
+(1)  134/    80A4 :                     
+(1)  135/    80A4 :                     ; ******** >= ********
+(1)  136/    80A4 :                     define_3e_3d_word:
+(1)  137/    80A4 : 7C                    ld   a,h
+(1)  138/    80A5 : BA                    cp   d
+(1)  139/    80A6 : 20 F0                 jr   nz,__Greater
+(1)  140/    80A8 : 7D                    ld   a,l
+(1)  141/    80A9 : BB                    cp   e
+(1)  142/    80AA : 20 EC                 jr   nz,__Greater
+(1)  143/    80AC : 18 E2                 jr   SetTrue
+(1)  144/    80AE : C9                    ret
+(1)  145/    80AF :                     
+(1)  146/    80AF :                     ; ---------------------------------------------
+(1)  147/    80AF :                     
+(1)  148/    80AF :                     ; ******** < ********
+(1)  149/    80AF :                     define_3c_word:
+(1)  150/    80AF : 7C                    ld   a,h
+(1)  151/    80B0 : BA                    cp   d
+(1)  152/    80B1 : 20 07                 jr   nz,__LessEqual
+(1)  153/    80B3 : 7D                    ld   a,l
+(1)  154/    80B4 : BB                    cp   e
+(1)  155/    80B5 : 20 03                 jr   nz,__LessEqual
+(1)  156/    80B7 : 18 DB                 jr   SetFalse
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 11 - 20/8/2018 22:55:30
+
+
+(1)  157/    80B9 : C9                    ret
+(1)  158/    80BA :                     
+(1)  159/    80BA :                     ; ---------------------------------------------
+(1)  160/    80BA :                     
+(1)  161/    80BA :                     ; ******** <= ********
+(1)  162/    80BA :                     define_3c_3d_word:
+(1)  163/    80BA :                     __LessEqual:
+(1)  164/    80BA : AF                    xor  a
+(1)  165/    80BB : ED 52                 sbc  hl,de
+(1)  166/    80BD : 7C                    ld   a,h
+(1)  167/    80BE : 19                    add  hl,de
+(1)  168/    80BF : CB 7F                 bit  7,a
+(1)  169/    80C1 : 28 CD                 jr   z,SetTrue
+(1)  170/    80C3 : 18 CF                 jr   SetFalse
+(1)  171/    80C5 : C9                    ret
+(1)  172/    80C6 :                     
+(1)  173/    80C6 :                     ; ---------------------------------------------
+(1)  174/    80C6 :                     
+(1)  175/    80C6 :                     ; ******** <> ********
+(1)  176/    80C6 :                     define_3c_3e_word:
+(1)  177/    80C6 : 7C                    ld   a,h
+(1)  178/    80C7 : BA                    cp   d
+(1)  179/    80C8 : 20 C6                 jr   nz,SetTrue
+(1)  180/    80CA : 7D                    ld   a,l
+(1)  181/    80CB : BB                    cp   e
+(1)  182/    80CC : 20 C2                 jr   nz,SetTrue
+(1)  183/    80CE : 18 C4                 jr   SetFalse
+(1)  184/    80D0 : C9                    ret
+(1)  185/    80D1 :                     
+(1)  186/    80D1 :                     ; ---------------------------------------------
+(1)  187/    80D1 :                     
+(1)  188/    80D1 :                     ; ******** - ********
+(1)  189/    80D1 :                     define_2d_macro:
+(1)  190/    80D1 : CD 30 82             call MacroExpand
+(1)  191/    80D4 : 07                   db   end_define_2d_macro-define_2d_macro-4
+(1)  192/    80D5 : 44                    ld   b,h
+(1)  193/    80D6 : 4D                    ld   c,l
+(1)  194/    80D7 : 62                    ld  h,d
+(1)  195/    80D8 : 6B                    ld   l,e
+(1)  196/    80D9 : AF                    xor   a
+(1)  197/    80DA : ED 42                 sbc  hl,bc
+(1)  198/    80DC :                     end_define_2d_macro:
+(1)  199/    80DC :                     
+(1)  200/    80DC :                     ; ---------------------------------------------
+(1)  201/    80DC :                     
+(1)  202/    80DC :                     ; ******** + ********
+(1)  203/    80DC :                     define_2b_macro:
+(1)  204/    80DC : CD 30 82             call MacroExpand
+(1)  205/    80DF : 01                   db   end_define_2b_macro-define_2b_macro-4
+(1)  206/    80E0 : 19                    add   hl,de
+(1)  207/    80E1 :                     end_define_2b_macro:
+(1)  208/    80E1 :                     
+(1)  209/    80E1 :                     ; ---------------------------------------------
+(1)  210/    80E1 :                     
+(1)  211/    80E1 :                     ; ******** * ********
+(1)  212/    80E1 :                     define_2a_macro:
+(1)  213/    80E1 : CD 30 82             call MacroExpand
+(1)  214/    80E4 : 03                   db   end_define_2a_macro-define_2a_macro-4
+(1)  215/    80E5 : CD 00 80              call Multiply16
+(1)  216/    80E8 :                     end_define_2a_macro:
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 12 - 20/8/2018 22:55:30
+
+
+(1)  217/    80E8 :                     
+(1)  218/    80E8 :                     ; ---------------------------------------------
+(1)  219/    80E8 :                     
+(1)  220/    80E8 :                     ; ******** xor ********
+(1)  221/    80E8 :                     define_78_6f_72_word:
+(1)  222/    80E8 : 7C                    ld   a,h
+(1)  223/    80E9 : AA                    xor  d
+(1)  224/    80EA : 67                    ld   h,a
+(1)  225/    80EB : 7D                    ld   a,l
+(1)  226/    80EC : AB                    xor  e
+(1)  227/    80ED : 6F                    ld   l,a
+(1)  228/    80EE : C9                    ret
+(1)  229/    80EF :                     
+(1)  230/    80EF :                     ; ---------------------------------------------
+(1)  231/    80EF :                     
+(1)  232/    80EF :                     ; ******** c@ ********
+(1)  233/    80EF :                     define_63_40_macro:
+(1)  234/    80EF : CD 30 82             call MacroExpand
+(1)  235/    80F2 : 03                   db   end_define_63_40_macro-define_63_40_macro-4
+(1)  236/    80F3 : 6E                    ld   l,(hl)
+(1)  237/    80F4 : 26 00                 ld   h,0
+(1)  238/    80F6 :                     end_define_63_40_macro:
+(1)  239/    80F6 :                     
+(1)  240/    80F6 :                     ; ---------------------------------------------
+(1)  241/    80F6 :                     
+(1)  242/    80F6 :                     ; ******** c! ********
+(1)  243/    80F6 :                     define_63_21_macro:
+(1)  244/    80F6 : CD 30 82             call MacroExpand
+(1)  245/    80F9 : 01                   db   end_define_63_21_macro-define_63_21_macro-4
+(1)  246/    80FA : 73                    ld   (hl),e
+(1)  247/    80FB :                     end_define_63_21_macro:
+(1)  248/    80FB :                     
+(1)  249/    80FB :                     ; ---------------------------------------------
+(1)  250/    80FB :                     
+(1)  251/    80FB :                     ; ******** @ ********
+(1)  252/    80FB :                     define_40_macro:
+(1)  253/    80FB : CD 30 82             call MacroExpand
+(1)  254/    80FE : 04                   db   end_define_40_macro-define_40_macro-4
+(1)  255/    80FF : 7E                    ld   a,(hl)
+(1)  256/    8100 : 23                    inc  hl
+(1)  257/    8101 : 66                    ld   h,(hl)
+(1)  258/    8102 : 6F                    ld   l,a
+(1)  259/    8103 :                     end_define_40_macro:
+(1)  260/    8103 :                     
+(1)  261/    8103 :                     ; ---------------------------------------------
+(1)  262/    8103 :                     
+(1)  263/    8103 :                     ; ******** -! ********
+(1)  264/    8103 :                     define_2d_21_word:
+(1)  265/    8103 : 7E                    ld   a,(hl)
+(1)  266/    8104 : 93                    sub  e
+(1)  267/    8105 : 77                    ld   (hl),a
+(1)  268/    8106 : 23                    inc  hl
+(1)  269/    8107 : 7E                    ld   a,(hl)
+(1)  270/    8108 : 9A                    sbc  a,d
+(1)  271/    8109 : 77                    ld   (hl),a
+(1)  272/    810A : C9                    ret
+(1)  273/    810B :                     
+(1)  274/    810B :                     ; ---------------------------------------------
+(1)  275/    810B :                     
+(1)  276/    810B :                     ; ******** ! ********
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 13 - 20/8/2018 22:55:30
+
+
+(1)  277/    810B :                     define_21_macro:
+(1)  278/    810B : CD 30 82             call MacroExpand
+(1)  279/    810E : 04                   db   end_define_21_macro-define_21_macro-4
+(1)  280/    810F : 73                    ld   (hl),e
+(1)  281/    8110 : 23                    inc  hl
+(1)  282/    8111 : 72                    ld   (hl),d
+(1)  283/    8112 : 2B                    dec  hl
+(1)  284/    8113 :                     end_define_21_macro:
+(1)  285/    8113 :                     
+(1)  286/    8113 :                     ; ---------------------------------------------
+(1)  287/    8113 :                     
+(1)  288/    8113 :                     ; ******** +! ********
+(1)  289/    8113 :                     define_2b_21_word:
+(1)  290/    8113 : 7E                    ld   a,(hl)
+(1)  291/    8114 : 83                    add  a,e
+(1)  292/    8115 : 77                    ld   (hl),a
+(1)  293/    8116 : 23                    inc  hl
+(1)  294/    8117 : 7E                    ld   a,(hl)
+(1)  295/    8118 : 8A                    adc  a,d
+(1)  296/    8119 : 77                    ld   (hl),a
+(1)  297/    811A : C9                    ret
+(1)  298/    811B :                     
+(1)  299/    811B :                     ; ---------------------------------------------
+(1)  300/    811B :                     
+(1)  301/    811B :                     ; ******** copy ********
+(1)  302/    811B :                     define_63_6f_70_79_word:
+(1)  303/    811B : D5                    push  de
+(1)  304/    811C : E5                    push  hl
+(1)  305/    811D : DD E5                 push  ix
+(1)  306/    811F : E5                    push  hl
+(1)  307/    8120 : DD E1                 pop  ix
+(1)  308/    8122 : DD 4E 04              ld   c,(ix+4)
+(1)  309/    8125 : DD 46 05              ld   b,(ix+5)
+(1)  310/    8128 : 78                    ld  a,b
+(1)  311/    8129 : B1                    or   c
+(1)  312/    812A : 28 0E                 jr   z,__copy1
+(1)  313/    812C : DD 6E 00              ld   l,(ix+0)
+(1)  314/    812F : DD 66 01              ld   h,(ix+1)
+(1)  315/    8132 : DD 5E 02              ld   e,(ix+2)
+(1)  316/    8135 : DD 56 03              ld  d,(ix+3)
+(1)  317/    8138 : ED B0                 ldir
+(1)  318/    813A :                     __copy1:
+(1)  319/    813A : DD E1                 pop  ix
+(1)  320/    813C : E1                    pop  hl
+(1)  321/    813D : D1                    pop  de
+(1)  322/    813E : C9                    ret
+(1)  323/    813F :                     
+(1)  324/    813F :                     ; ---------------------------------------------
+(1)  325/    813F :                     
+(1)  326/    813F :                     ; ******** false ********
+(1)  327/    813F :                     define_66_61_6c_73_65_macro:
+(1)  328/    813F : CD 30 82             call MacroExpand
+(1)  329/    8142 : 04                   db   end_define_66_61_6c_73_65_macro-define_66_61_6c_73_65_macro-4
+(1)  330/    8143 : EB                    ex   de,hl
+(1)  331/    8144 : 21 00 00              ld   hl,0000h
+(1)  332/    8147 :                     end_define_66_61_6c_73_65_macro:
+(1)  333/    8147 :                     
+(1)  334/    8147 :                     ; ---------------------------------------------
+(1)  335/    8147 :                     
+(1)  336/    8147 :                     ; ******** fill ********
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 14 - 20/8/2018 22:55:30
+
+
+(1)  337/    8147 :                     define_66_69_6c_6c_word:
+(1)  338/    8147 : D5                    push  de
+(1)  339/    8148 : E5                    push  hl
+(1)  340/    8149 : 7E                    ld   a,(hl)
+(1)  341/    814A : 23                    inc  hl
+(1)  342/    814B : 23                    inc  hl
+(1)  343/    814C : 5E                    ld   e,(hl)
+(1)  344/    814D : 23                    inc  hl
+(1)  345/    814E : 56                    ld   d,(hl)
+(1)  346/    814F : 23                    inc  hl
+(1)  347/    8150 : 4E                    ld   c,(hl)
+(1)  348/    8151 : 23                    inc  hl
+(1)  349/    8152 : 46                    ld   b,(hl)
+(1)  350/    8153 : EB                    ex   de,hl
+(1)  351/    8154 : 5F                    ld   e,a
+(1)  352/    8155 :                     __fill1:
+(1)  353/    8155 : 78                    ld   a,b
+(1)  354/    8156 : B1                    or   c
+(1)  355/    8157 : 28 05                 jr   z,__fill2
+(1)  356/    8159 : 0B                    dec  bc
+(1)  357/    815A : 73                    ld   (hl),e
+(1)  358/    815B : 23                    inc  hl
+(1)  359/    815C : 18 F7                 jr   __fill1
+(1)  360/    815E :                     __fill2:
+(1)  361/    815E : E1                    pop  hl
+(1)  362/    815F : D1                    pop  de
+(1)  363/    8160 : C9                    ret
+(1)  364/    8161 :                     
+(1)  365/    8161 :                     ; ---------------------------------------------
+(1)  366/    8161 :                     
+(1)  367/    8161 :                     ; ******** pop.ab ********
+(1)  368/    8161 :                     define_70_6f_70_2e_61_62_macro:
+(1)  369/    8161 : CD 30 82             call MacroExpand
+(1)  370/    8164 : 02                   db   end_define_70_6f_70_2e_61_62_macro-define_70_6f_70_2e_61_62_macro-4
+(1)  371/    8165 : E1                    pop  hl
+(1)  372/    8166 : D1                    pop  de
+(1)  373/    8167 :                     end_define_70_6f_70_2e_61_62_macro:
+(1)  374/    8167 :                     
+(1)  375/    8167 :                     ; ---------------------------------------------
+(1)  376/    8167 :                     
+(1)  377/    8167 :                     ; ******** pop.bb ********
+(1)  378/    8167 :                     define_70_6f_70_2e_62_62_macro:
+(1)  379/    8167 : CD 30 82             call MacroExpand
+(1)  380/    816A : 02                   db   end_define_70_6f_70_2e_62_62_macro-define_70_6f_70_2e_62_62_macro-4
+(1)  381/    816B : D1                    pop  de
+(1)  382/    816C : D1                    pop  de
+(1)  383/    816D :                     end_define_70_6f_70_2e_62_62_macro:
+(1)  384/    816D :                     
+(1)  385/    816D :                     ; ---------------------------------------------
+(1)  386/    816D :                     
+(1)  387/    816D :                     ; ******** push.ab ********
+(1)  388/    816D :                     define_70_75_73_68_2e_61_62_macro:
+(1)  389/    816D : CD 30 82             call MacroExpand
+(1)  390/    8170 : 02                   db   end_define_70_75_73_68_2e_61_62_macro-define_70_75_73_68_2e_61_62_macro-4
+(1)  391/    8171 : D5                     push  de
+(1)  392/    8172 : E5                     push  hl
+(1)  393/    8173 :                     end_define_70_75_73_68_2e_61_62_macro:
+(1)  394/    8173 :                     
+(1)  395/    8173 :                     ; ---------------------------------------------
+(1)  396/    8173 :                     
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 15 - 20/8/2018 22:55:30
+
+
+(1)  397/    8173 :                     ; ******** a>r ********
+(1)  398/    8173 :                     define_61_3e_72_macro:
+(1)  399/    8173 : CD 30 82             call MacroExpand
+(1)  400/    8176 : 01                   db   end_define_61_3e_72_macro-define_61_3e_72_macro-4
+(1)  401/    8177 : E5                    push  hl
+(1)  402/    8178 :                     end_define_61_3e_72_macro:
+(1)  403/    8178 :                     
+(1)  404/    8178 :                     ; ---------------------------------------------
+(1)  405/    8178 :                     
+(1)  406/    8178 :                     ; ******** ; ********
+(1)  407/    8178 :                     define_3b_macro:
+(1)  408/    8178 : CD 30 82             call MacroExpand
+(1)  409/    817B : 01                   db   end_define_3b_macro-define_3b_macro-4
+(1)  410/    817C : C9                    ret
+(1)  411/    817D :                     end_define_3b_macro:
+(1)  412/    817D :                     
+(1)  413/    817D :                     ; ---------------------------------------------
+(1)  414/    817D :                     
+(1)  415/    817D :                     ; ******** r>a ********
+(1)  416/    817D :                     define_72_3e_61_macro:
+(1)  417/    817D : CD 30 82             call MacroExpand
+(1)  418/    8180 : 02                   db   end_define_72_3e_61_macro-define_72_3e_61_macro-4
+(1)  419/    8181 : EB                    ex   de,hl
+(1)  420/    8182 : E1                    pop  hl
+(1)  421/    8183 :                     end_define_72_3e_61_macro:
+(1)  422/    8183 :                     
+(1)  423/    8183 :                     ; ---------------------------------------------
+(1)  424/    8183 :                     
+(1)  425/    8183 :                     ; ******** true ********
+(1)  426/    8183 :                     define_74_72_75_65_macro:
+(1)  427/    8183 : CD 30 82             call MacroExpand
+(1)  428/    8186 : 04                   db   end_define_74_72_75_65_macro-define_74_72_75_65_macro-4
+(1)  429/    8187 : EB                    ex   de,hl
+(1)  430/    8188 : 21 FF FF              ld   hl,0FFFFh
+(1)  431/    818B :                     end_define_74_72_75_65_macro:
+(1)  432/    818B :                     
+(1)  433/    818B :                     ; ---------------------------------------------
+(1)  434/    818B :                     
+(1)  435/    818B :                     ; ******** a>b ********
+(1)  436/    818B :                     define_61_3e_62_macro:
+(1)  437/    818B : CD 30 82             call MacroExpand
+(1)  438/    818E : 02                   db   end_define_61_3e_62_macro-define_61_3e_62_macro-4
+(1)  439/    818F : 54                    ld   d,h
+(1)  440/    8190 : 5D                    ld   e,l
+(1)  441/    8191 :                     end_define_61_3e_62_macro:
+(1)  442/    8191 :                     
+(1)  443/    8191 :                     ; ---------------------------------------------
+(1)  444/    8191 :                     
+(1)  445/    8191 :                     ; ******** b>a ********
+(1)  446/    8191 :                     define_62_3e_61_macro:
+(1)  447/    8191 : CD 30 82             call MacroExpand
+(1)  448/    8194 : 02                   db   end_define_62_3e_61_macro-define_62_3e_61_macro-4
+(1)  449/    8195 : 62                    ld   h,d
+(1)  450/    8196 : 6B                    ld   l,e
+(1)  451/    8197 :                     end_define_62_3e_61_macro:
+(1)  452/    8197 :                     
+(1)  453/    8197 :                     ; ---------------------------------------------
+(1)  454/    8197 :                     
+(1)  455/    8197 :                     ; ******** swap ********
+(1)  456/    8197 :                     define_73_77_61_70_macro:
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 16 - 20/8/2018 22:55:30
+
+
+(1)  457/    8197 : CD 30 82             call MacroExpand
+(1)  458/    819A : 01                   db   end_define_73_77_61_70_macro-define_73_77_61_70_macro-4
+(1)  459/    819B : EB                    ex   de,hl
+(1)  460/    819C :                     end_define_73_77_61_70_macro:
+(1)  461/    819C :                     
+(1)  462/    819C :                     ; ---------------------------------------------
+(1)  463/    819C :                     
+(1)  464/    819C :                     ; ******** 0= ********
+(1)  465/    819C :                     define_30_3d_word:
+(1)  466/    819C : 7C                    ld   a,h
+(1)  467/    819D : B5                    or   l
+(1)  468/    819E : 21 00 00              ld   hl,0
+(1)  469/    81A1 : C0                    ret  nz
+(1)  470/    81A2 : 2B                    dec  hl
+(1)  471/    81A3 : C9                    ret
+(1)  472/    81A4 :                     
+(1)  473/    81A4 :                     ; ---------------------------------------------
+(1)  474/    81A4 :                     
+(1)  475/    81A4 :                     ; ******** 0< ********
+(1)  476/    81A4 :                     define_30_3c_word:
+(1)  477/    81A4 : CB 7C                 bit  7,h
+(1)  478/    81A6 : 21 00 00              ld   hl,0
+(1)  479/    81A9 : C8                    ret  z
+(1)  480/    81AA : 2B                    dec  hl
+(1)  481/    81AB : C9                    ret
+(1)  482/    81AC :                     
+(1)  483/    81AC :                     ; ---------------------------------------------
+(1)  484/    81AC :                     
+(1)  485/    81AC :                     ; ******** 0- ********
+(1)  486/    81AC :                     define_30_2d_word:
+(1)  487/    81AC :                     __Negate:
+(1)  488/    81AC : 44                    ld   b,h
+(1)  489/    81AD : 4D                    ld   c,l
+(1)  490/    81AE : AF                    xor  a
+(1)  491/    81AF : 67                    ld   h,a
+(1)  492/    81B0 : 6F                    ld   l,a
+(1)  493/    81B1 : ED 42                 sbc  hl,bc
+(1)  494/    81B3 : C9                    ret
+(1)  495/    81B4 :                     
+(1)  496/    81B4 :                     ; ---------------------------------------------
+(1)  497/    81B4 :                     
+(1)  498/    81B4 :                     ; ******** 1- ********
+(1)  499/    81B4 :                     define_31_2d_macro:
+(1)  500/    81B4 : CD 30 82             call MacroExpand
+(1)  501/    81B7 : 01                   db   end_define_31_2d_macro-define_31_2d_macro-4
+(1)  502/    81B8 : 2B                    dec  hl
+(1)  503/    81B9 :                     end_define_31_2d_macro:
+(1)  504/    81B9 :                     
+(1)  505/    81B9 :                     ; ---------------------------------------------
+(1)  506/    81B9 :                     
+(1)  507/    81B9 :                     ; ******** 1+ ********
+(1)  508/    81B9 :                     define_31_2b_macro:
+(1)  509/    81B9 : CD 30 82             call MacroExpand
+(1)  510/    81BC : 01                   db   end_define_31_2b_macro-define_31_2b_macro-4
+(1)  511/    81BD : 23                    inc  hl
+(1)  512/    81BE :                     end_define_31_2b_macro:
+(1)  513/    81BE :                     
+(1)  514/    81BE :                     ; ---------------------------------------------
+(1)  515/    81BE :                     
+(1)  516/    81BE :                     ; ******** 2/ ********
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 17 - 20/8/2018 22:55:30
+
+
+(1)  517/    81BE :                     define_32_2f_macro:
+(1)  518/    81BE : CD 30 82             call MacroExpand
+(1)  519/    81C1 : 04                   db   end_define_32_2f_macro-define_32_2f_macro-4
+(1)  520/    81C2 : CB 2C                 sra  h
+(1)  521/    81C4 : CB 1D                 rr   l
+(1)  522/    81C6 :                     end_define_32_2f_macro:
+(1)  523/    81C6 :                     
+(1)  524/    81C6 :                     ; ---------------------------------------------
+(1)  525/    81C6 :                     
+(1)  526/    81C6 :                     ; ******** 2- ********
+(1)  527/    81C6 :                     define_32_2d_macro:
+(1)  528/    81C6 : CD 30 82             call MacroExpand
+(1)  529/    81C9 : 02                   db   end_define_32_2d_macro-define_32_2d_macro-4
+(1)  530/    81CA : 2B                    dec  hl
+(1)  531/    81CB : 2B                    dec  hl
+(1)  532/    81CC :                     end_define_32_2d_macro:
+(1)  533/    81CC :                     
+(1)  534/    81CC :                     ; ---------------------------------------------
+(1)  535/    81CC :                     
+(1)  536/    81CC :                     ; ******** 2+ ********
+(1)  537/    81CC :                     define_32_2b_macro:
+(1)  538/    81CC : CD 30 82             call MacroExpand
+(1)  539/    81CF : 02                   db   end_define_32_2b_macro-define_32_2b_macro-4
+(1)  540/    81D0 : 23                    inc  hl
+(1)  541/    81D1 : 23                    inc  hl
+(1)  542/    81D2 :                     end_define_32_2b_macro:
+(1)  543/    81D2 :                     
+(1)  544/    81D2 :                     ; ---------------------------------------------
+(1)  545/    81D2 :                     
+(1)  546/    81D2 :                     ; ******** 2* ********
+(1)  547/    81D2 :                     define_32_2a_macro:
+(1)  548/    81D2 : CD 30 82             call MacroExpand
+(1)  549/    81D5 : 01                   db   end_define_32_2a_macro-define_32_2a_macro-4
+(1)  550/    81D6 : 29                    add  hl,hl
+(1)  551/    81D7 :                     end_define_32_2a_macro:
+(1)  552/    81D7 :                     
+(1)  553/    81D7 :                     ; ---------------------------------------------
+(1)  554/    81D7 :                     
+(1)  555/    81D7 :                     ; ******** abs ********
+(1)  556/    81D7 :                     define_61_62_73_word:
+(1)  557/    81D7 : CB 7C                 bit  7,h
+(1)  558/    81D9 : C8                    ret  z
+(1)  559/    81DA : 18 D0                 jr   __Negate
+(1)  560/    81DC : C9                    ret
+(1)  561/    81DD :                     
+(1)  562/    81DD :                     ; ---------------------------------------------
+(1)  563/    81DD :                     
+(1)  564/    81DD :                     ; ******** bswap ********
+(1)  565/    81DD :                     define_62_73_77_61_70_macro:
+(1)  566/    81DD : CD 30 82             call MacroExpand
+(1)  567/    81E0 : 03                   db   end_define_62_73_77_61_70_macro-define_62_73_77_61_70_macro-4
+(1)  568/    81E1 : 7C                    ld   a,h
+(1)  569/    81E2 : 65                    ld   h,l
+(1)  570/    81E3 : 6F                    ld   l,a
+(1)  571/    81E4 :                     end_define_62_73_77_61_70_macro:
+(1)  572/    81E4 :                     
+(1)  573/    81E4 :                     ; ---------------------------------------------
+(1)  574/    81E4 :                     
+(1)  575/    81E4 :                     ; ******** not ********
+(1)  576/    81E4 :                     define_6e_6f_74_word:
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 18 - 20/8/2018 22:55:30
+
+
+(1)  577/    81E4 : 7C                    ld   a,h
+(1)  578/    81E5 : 2F                    cpl
+(1)  579/    81E6 : 67                    ld   h,a
+(1)  580/    81E7 : 7D                    ld   a,l
+(1)  581/    81E8 : 2F                    cpl
+(1)  582/    81E9 : 6F                    ld  l,a
+(1)  583/    81EA : C9                    ret
+(1)  584/    81EB :                     
+(1)  585/    81EB :                     ; ---------------------------------------------
+(1)  586/    81EB :                     
+(1)  587/    81EB :                     ; ******** breakpoint ********
+(1)  588/    81EB :                     define_62_72_65_61_6b_70_6f_69_6e_74_macro:
+(1)  589/    81EB : CD 30 82             call MacroExpand
+(1)  590/    81EE : 02                   db   end_define_62_72_65_61_6b_70_6f_69_6e_74_macro-define_62_72_65_61_6b_70_6f_69_6e_74_macro-4
+(1)  591/    81EF : DD 01                 db   0DDh,01h
+(1)  592/    81F1 :                     end_define_62_72_65_61_6b_70_6f_69_6e_74_macro:
+(1)  593/    81F1 :                     
+(1)  594/    81F1 :                     ; ---------------------------------------------
+(1)  595/    81F1 :                     
+(1)  596/    81F1 :                     ; ******** debug ********
+(1)  597/    81F1 :                     define_64_65_62_75_67_word:
+(1)  598/    81F1 : C5                    push  bc
+(1)  599/    81F2 : D5                    push  de
+(1)  600/    81F3 : E5                    push  hl
+(1)  601/    81F4 : D5                    push  de
+(1)  602/    81F5 : EB                    ex   de,hl
+(1)  603/    81F6 : 06 C0                 ld   b,0C0h
+(1)  604/    81F8 : 21 F7 02              ld   hl,23+23*32
+(1)  605/    81FB : CD 0B 82              call  __DisplayHexInteger
+(1)  606/    81FE : D1                    pop  de
+(1)  607/    81FF : 06 80                 ld   b,080h
+(1)  608/    8201 : 21 FC 02              ld   hl,28+23*32
+(1)  609/    8204 : CD 0B 82              call  __DisplayHexInteger
+(1)  610/    8207 : E1                    pop  hl
+(1)  611/    8208 : D1                    pop  de
+(1)  612/    8209 : C1                    pop  bc
+(1)  613/    820A : C9                    ret
+(1)  614/    820B :                     __DisplayHexInteger:
+(1)  615/    820B : 7A                    ld   a,d
+(1)  616/    820C : CD 10 82              call  __DisplayHexByte
+(1)  617/    820F : 7B                    ld   a,e
+(1)  618/    8210 :                     __DisplayHexByte:
+(1)  619/    8210 : F5                    push  af
+(1)  620/    8211 : 0F                    rrca
+(1)  621/    8212 : 0F                    rrca
+(1)  622/    8213 : 0F                    rrca
+(1)  623/    8214 : 0F                    rrca
+(1)  624/    8215 : CD 19 82              call __DisplayHexNibble
+(1)  625/    8218 : F1                    pop  af
+(1)  626/    8219 :                     __DisplayHexNibble:
+(1)  627/    8219 : E6 0F                 and  0Fh
+(1)  628/    821B : FE 0A                 cp   10
+(1)  629/    821D : 38 02                 jr   c,__DisplayIntCh
+(1)  630/    821F : D6 39                 sub  57
+(1)  631/    8221 :                     __DisplayIntCh:
+(1)  632/    8221 : C6 30                 add  a,48
+(1)  633/    8223 : B0                    or   b
+(1)  634/    8224 : CD 3E 5C              call IOWriteCharacter
+(1)  635/    8227 : 23                    inc  hl
+(1)  636/    8228 : C9                    ret
+ AS V1.42 Beta [Bld 115] - source file system.asm(corewords.asm) - page 19 - 20/8/2018 22:55:30
+
+
+(1)  637/    8229 :                     
+(1)  638/    8229 :                     ; ---------------------------------------------
+(1)  639/    8229 :                     
+(1)  640/    8229 :                     ; ******** halt ********
+(1)  641/    8229 :                     define_68_61_6c_74_macro:
+(1)  642/    8229 : CD 30 82             call MacroExpand
+(1)  643/    822C : 03                   db   end_define_68_61_6c_74_macro-define_68_61_6c_74_macro-4
+(1)  644/    822D :                     HaltProcessor:
+(1)  645/    822D : 76                    halt
+(1)  646/    822E : 18 FD                 jr   HaltProcessor
+(1)  647/    8230 :                     end_define_68_61_6c_74_macro:
+(1)  648/    8230 :                     
+(1)  649/    8230 :                     ; ---------------------------------------------
+(1)  650/    8230 :                     
+(1)  651/    8230 :                     ; ******** system.xmacro ********
+(1)  652/    8230 :                     define_73_79_73_74_65_6d_2e_78_6d_61_63_72_6f_word:
+(1)  653/    8230 :                     MacroExpand:
+(1)  654/    8230 : E1                    pop  hl
+(1)  655/    8231 : C9                    ret
+(1)  656/    8232 :                     
+(1)  657/    8232 :                     ; ---------------------------------------------
+(1)  658/    8232 :                     
+(1)  659/    8232 :                     ; ******** system.info ********
+(1)  660/    8232 :                     define_73_79_73_74_65_6d_2e_69_6e_66_6f_word:
+(1)  661/    8232 :                     SISystemInformation:
+(1)  662/    8232 :                     SINextDictionary:
+(1)  663/    8232 : 7D 5D                dw  DictionaryStart
+(1)  664/    8234 :                     SINextFreeProgram:
+(1)  665/    8234 : 3E 82                dw   ProgramSpace
+(1)  666/    8236 :                     SINextFreePage:
+(1)  667/    8236 : 00 00                db   0,0
+(1)  668/    8238 :                     SIRuntimeAddress:
+(1)  669/    8238 : 2D 82                dw   HaltProcessor
+(1)  670/    823A :                     SIStack:
+(1)  671/    823A : 00 5C                dw   Z80Stack
+(1)  672/    823C :                     SIDictionaryBase:
+(1)  673/    823C : 7D 5D                dw   DictionaryStart
+(1)  674/    823E :                     
+(1)  675/    823E :                     ; ---------------------------------------------
+(1)  676/    823E :                     
+(1)  677/    823E :                     
+      30/    823E :                     ProgramSpace:										; free program memory
+      31/    823E :                     
+      32/    823E :                     
+ AS V1.42 Beta [Bld 115] - source file system.asm - page 20 - 20/8/2018 22:55:30
+
+
+  symbol table (* = unused):
+  ------------------------
+
+*ARCHITECTURE :                                        x86_64-unknown-linux - |
+*BIGENDIAN :                      0 - | *BRANCHEXT :                      0 - |
+*CASESENSITIVE :                  0 - | *CONSTPI :        3.141592653589793 - |
+*DATE :                   20/8/2018 - |  DEFINE_21_MACRO :             810B C |
+ DEFINE_2A_MACRO :             80E1 C | *DEFINE_2B_21_WORD :           8113 C |
+ DEFINE_2B_MACRO :             80DC C | *DEFINE_2D_21_WORD :           8103 C |
+ DEFINE_2D_MACRO :             80D1 C | *DEFINE_2F_WORD :              8081 C |
+*DEFINE_30_2D_WORD :           81AC C | *DEFINE_30_3C_WORD :           81A4 C |
+*DEFINE_30_3D_WORD :           819C C |  DEFINE_31_2B_MACRO :          81B9 C |
+ DEFINE_31_2D_MACRO :          81B4 C |  DEFINE_32_2A_MACRO :          81D2 C |
+ DEFINE_32_2B_MACRO :          81CC C |  DEFINE_32_2D_MACRO :          81C6 C |
+ DEFINE_32_2F_MACRO :          81BE C |  DEFINE_3B_MACRO :             8178 C |
+*DEFINE_3C_3D_WORD :           80BA C | *DEFINE_3C_3E_WORD :           80C6 C |
+*DEFINE_3C_WORD :              80AF C | *DEFINE_3D_WORD :              8088 C |
+*DEFINE_3E_3D_WORD :           80A4 C | *DEFINE_3E_WORD :              8098 C |
+ DEFINE_40_MACRO :             80FB C |  DEFINE_61_3E_62_MACRO :       818B C |
+ DEFINE_61_3E_72_MACRO :       8173 C | *DEFINE_61_62_73_WORD :        81D7 C |
+*DEFINE_61_6E_64_WORD :        8057 C |  DEFINE_62_3E_61_MACRO :       8191 C |
+ DEFINE_62_72_65_61_6B_70_6F_69_6E_74_MACRO :                          81EB C |
+ DEFINE_62_73_77_61_70_MACRO : 81DD C |  DEFINE_63_21_MACRO :          80F6 C |
+ DEFINE_63_40_MACRO :          80EF C |
+*DEFINE_63_6F_6E_2E_63_6C_65_61_72_2E_73_63_72_65_65_6E_WORD :         8045 C |
+*DEFINE_63_6F_6E_2E_63_75_72_73_6F_72_21_WORD :                        8050 C |
+*DEFINE_63_6F_6E_2E_69_6E_6B_65_79_WORD :                              8048 C |
+*DEFINE_63_6F_6E_2E_73_63_72_65_65_6E_21_WORD :                        8053 C |
+*DEFINE_63_6F_70_79_WORD :     811B C | *DEFINE_64_65_62_75_67_WORD :  81F1 C |
+ DEFINE_66_61_6C_73_65_MACRO : 813F C | *DEFINE_66_69_6C_6C_WORD :     8147 C |
+ DEFINE_68_61_6C_74_MACRO :    8229 C | *DEFINE_6D_61_78_WORD :        805E C |
+*DEFINE_6D_69_6E_WORD :        8069 C | *DEFINE_6D_6F_64_WORD :        8074 C |
+*DEFINE_6E_6F_74_WORD :        81E4 C | *DEFINE_6F_72_WORD :           807A C |
+ DEFINE_70_6F_70_2E_61_62_MACRO :                                      8161 C |
+ DEFINE_70_6F_70_2E_62_62_MACRO :                                      8167 C |
+ DEFINE_70_75_73_68_2E_61_62_MACRO :                                   816D C |
+ DEFINE_72_3E_61_MACRO :       817D C |  DEFINE_73_77_61_70_MACRO :    8197 C |
+*DEFINE_73_79_73_74_65_6D_2E_69_6E_66_6F_WORD :                        8232 C |
+*DEFINE_73_79_73_74_65_6D_2E_78_6D_61_63_72_6F_WORD :                  8230 C |
+ DEFINE_74_72_75_65_MACRO :    8183 C | *DEFINE_78_6F_72_WORD :        80E8 C |
+ DICTIONARYSTART :             5D7D C |  DIV16_LOOP1 :                 8024 C |
+ DIV16_LOOP2 :                 8035 C |  DIV16_NOADD1 :                802C C |
+ DIV16_NOADD2 :                803D C |  DIVIDEMOD16 :                 801A C |
+ END_DEFINE_21_MACRO :         8113 C |  END_DEFINE_2A_MACRO :         80E8 C |
+ END_DEFINE_2B_MACRO :         80E1 C |  END_DEFINE_2D_MACRO :         80DC C |
+ END_DEFINE_31_2B_MACRO :      81BE C |  END_DEFINE_31_2D_MACRO :      81B9 C |
+ END_DEFINE_32_2A_MACRO :      81D7 C |  END_DEFINE_32_2B_MACRO :      81D2 C |
+ END_DEFINE_32_2D_MACRO :      81CC C |  END_DEFINE_32_2F_MACRO :      81C6 C |
+ END_DEFINE_3B_MACRO :         817D C |  END_DEFINE_40_MACRO :         8103 C |
+ END_DEFINE_61_3E_62_MACRO :   8191 C |  END_DEFINE_61_3E_72_MACRO :   8178 C |
+ END_DEFINE_62_3E_61_MACRO :   8197 C |
+ END_DEFINE_62_72_65_61_6B_70_6F_69_6E_74_MACRO :                      81F1 C |
+ END_DEFINE_62_73_77_61_70_MACRO :                                     81E4 C |
+ END_DEFINE_63_21_MACRO :      80FB C |  END_DEFINE_63_40_MACRO :      80F6 C |
+ END_DEFINE_66_61_6C_73_65_MACRO :                                     8147 C |
+ END_DEFINE_68_61_6C_74_MACRO :                                        8230 C |
+ END_DEFINE_70_6F_70_2E_61_62_MACRO :                                  8167 C |
+ END_DEFINE_70_6F_70_2E_62_62_MACRO :                                  816D C |
+ END_DEFINE_70_75_73_68_2E_61_62_MACRO :                               8173 C |
+ END_DEFINE_72_3E_61_MACRO :   8183 C |
+ AS V1.42 Beta [Bld 115] - source file system.asm - page 21 - 20/8/2018 22:55:30
+
+
+ END_DEFINE_73_77_61_70_MACRO :                                        819C C |
+ END_DEFINE_74_72_75_65_MACRO :                                        818B C |
+*FALSE :                          0 - | *FULLPMMU :                       1 - |
+ HALTPROCESSOR :               822D C | *HAS64 :                          1 - |
+*HASDSP :                         0 - | *HASFPU :                         0 - |
+*HASPMMU :                        0 - | *INEXTMODE :                      0 - |
+*INLWORDMODE :                    0 - | *INMAXMODE :                      0 - |
+*INSRCMODE :                      0 - | *INSUPMODE :                      0 - |
+ IOCLEARSCREEN :               5C1E C | *IOCONSOLEDISPLAYLINES :         14 - |
+ IOCURSORPOSITION :            5D7B C |  IOSCANKEYBOARD :              5CB0 C |
+*IOSCREENHEIGHT :                18 - | *IOSCREENWIDTH :                 20 - |
+ IOSETCURSOR :                 5C00 C |  IOWRITECHARACTER :            5C3E C |
+*LISTON :                         1 - | *MACEXP :                         1 - |
+ MACROEXPAND :                 8230 C | *MOMCPU :                        80 - |
+*MOMCPUNAME :                   Z80 - |  MULTIPLY16 :                  8000 C |
+*NESTMAX :                      100 - | *PACKING :                        0 - |
+*PADDING :                        1 - |  PROGRAMSPACE :                823E C |
+*RELAXED :                        0 - |  SETFALSE :                    8094 C |
+ SETTRUE :                     8090 C | *SIDICTIONARYBASE :            823C C |
+*SINEXTDICTIONARY :            8232 C | *SINEXTFREEPAGE :              8236 C |
+*SINEXTFREEPROGRAM :           8234 C |  SIRUNTIMEADDRESS :            8238 C |
+ SISTACK :                     823A C | *SISYSTEMINFORMATION :         8232 C |
+*TIME :                    22:55:30 - | *TRUE :                           1 - |
+*VERSION :                     142F - |  Z80STACK :                    5C00 C |
+ __COPY1 :                     813A C |  __CORE__MULT_LOOP :           8007 C |
+ __CORE__MULT_SHIFT :          800C C |  __CS1 :                       5C23 C |
+ __CS2 :                       5C2B C |  __DISPLAYHEXBYTE :            8210 C |
+ __DISPLAYHEXINTEGER :         820B C |  __DISPLAYHEXNIBBLE :          8219 C |
+ __DISPLAYINTCH :              8221 C |  __FILL1 :                     8155 C |
+ __FILL2 :                     815E C |  __GREATER :                   8098 C |
+ __KR1 :                       5CC1 C |  __KR2 :                       5CCC C |
+ __KR3 :                       5CCE C |  __KR_EXIT :                   5CFB C |
+ __KR_KEYPRESSED :             5CF5 C |  __KR_NO_SHIFT_TABLE :         5CFF C |
+ __KR_SHIFT_TABLE :            5D4F C |  __KR_SYMBOL_SHIFT_TABLE :     5D27 C |
+ __LESSEQUAL :                 80BA C |  __NEGATE :                    81AC C |
+ __SCEXIT :                    5C16 C |  __WC2 :                       5C71 C |
+ __WCEXIT :                    5CAB C |  __WC_COLOURS :                5D77 C |
+ ___KR4 :                      5CDD C |
+
+    166 symbols
+     65 unused symbols
+
+ AS V1.42 Beta [Bld 115] - source file system.asm - page 22 - 20/8/2018 22:55:30
+
+
+  codepages:
+  ----------
+
+STANDARD (0 changed characters)
+
+
+0.00 seconds assembly time
+
+   1112 lines source file
+      2 passes
+      0 errors
+      0 warnings

@@ -1,0 +1,4 @@
+: offset ; ; private
+
+: redraw	500 for a>r offset@ + swap r>a screen! next 
+1 offset& +! ;

@@ -1,0 +1,5 @@
+TODO:
+	Build words from code at various levels.
+	Start experimenting :)
+	JR limitations ?
+				

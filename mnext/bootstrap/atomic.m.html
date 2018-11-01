@@ -1,0 +1,249 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :   atomic.m </span><br />
+<span style='color:#FFFFFF;'>author :  paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose :  low level atomic functions </span><br />
+<span style='color:#FFFFFF;'>date :   24th september 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>macros section </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFF00;'>macros </span><br />
+<br />
+<span style='color:#FFFFFF;'>return from caller, compiles return and then return compiled manually </span><br />
+<br />
+<span style='color:#FF0000;'>; </span><span style='color:#00FF00;'>{ret} </span><span style='color:#00FF00;'>a, </span><span style='color:#FFFF00;'>{ret} </span><span style='color:#FFFF00;'>a, </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>cspect breakpoint </span><br />
+<br />
+<span style='color:#FF0000;'>brk </span><span style='color:#00FF00;'>$dd01 </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>integer addition </span><br />
+<br />
+<span style='color:#FF0000;'>+ </span><span style='color:#00FF00;'>{add.hl,de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>integer subtraction </span><br />
+<br />
+<span style='color:#FF0000;'>- </span><span style='color:#00FF00;'>{xor.a} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.b,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.c,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ex.de,hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{sbc.hl,bc} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>swap a & b </span><br />
+<br />
+<span style='color:#FF0000;'>swap </span><span style='color:#00FF00;'>{ex.de,hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>incrementers/decrementers </span><br />
+<br />
+<span style='color:#FF0000;'>2+ </span><span style='color:#00FF00;'>{inc.hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>1+ </span><span style='color:#00FF00;'>{inc.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>2- </span><span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>1- </span><span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>scalars </span><br />
+<br />
+<span style='color:#FF0000;'>16* </span><span style='color:#00FF00;'>{add.hl,hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>8* </span><span style='color:#00FF00;'>{add.hl,hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>4* </span><span style='color:#00FF00;'>{add.hl,hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>2* </span><span style='color:#00FF00;'>{add.hl,hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>4/ </span><span style='color:#00FF00;'>{sra.h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{rr.l} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>2/ </span><span style='color:#00FF00;'>{sra.h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{rr.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>256* </span><span style='color:#00FF00;'>{ld.h,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.l,dd} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>c, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>register->register </span><br />
+<br />
+<span style='color:#FF0000;'>a>b </span><span style='color:#00FF00;'>{ld.d,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.e,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>a>c </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{pop.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>b>a </span><span style='color:#00FF00;'>{ld.h,d} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.l,e} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>b>c </span><span style='color:#00FF00;'>{ld.ixh,d} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.ixl,e} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>c>a </span><span style='color:#00FF00;'>{push.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>c>b </span><span style='color:#00FF00;'>{ld.d,ixh} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.e,ixl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>register to/from stack </span><br />
+<br />
+<span style='color:#FF0000;'>a>r </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>b>r </span><span style='color:#00FF00;'>{push.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>c>r </span><span style='color:#00FF00;'>{push.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>r>a </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>r>b </span><span style='color:#00FF00;'>{pop.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>r>c </span><span style='color:#00FF00;'>{pop.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>ab>r </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>abc>r </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>r>ab </span><span style='color:#00FF00;'>{pop.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>r>abc </span><span style='color:#00FF00;'>{pop.ix} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{pop.de} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>memory read/write indirect </span><br />
+<br />
+<span style='color:#FF0000;'>@ </span><span style='color:#00FF00;'>{ld.a,(hl)} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{inc.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.h,(hl)} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.l,a} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>c@ </span><span style='color:#00FF00;'>{ld.l,(hl)} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.h,dd} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>c, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>! </span><span style='color:#00FF00;'>{ld.(hl),e} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{inc.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.(hl),d} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#FF0000;'>c! </span><span style='color:#00FF00;'>{ld.(hl),e} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>input/output to/from port </span><br />
+<br />
+<span style='color:#FF0000;'>port@ </span><span style='color:#00FF00;'>{ld.b,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.c,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{in.l,(c)} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.h,dd} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>c, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>port! </span><span style='color:#00FF00;'>{ld.b,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.c,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{out.(c),e} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>byte swap </span><br />
+<br />
+<span style='color:#FF0000;'>bswap </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.h,l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.l,a} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>words section </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFF00;'>words </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>executable versions of words - no stack manipulators or return (;) as they cannot be executed </span><br />
+<span style='color:#FFFFFF;'>(nor can the breakpoint for cspect, obviously :) ) </span><br />
+<br />
+<span style='color:#FF0000;'>+ </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>- </span><span style='color:#00FF00;'>- </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>swap </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>bswap </span><span style='color:#00FF00;'>bswap </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>1+ </span><span style='color:#00FF00;'>1+ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>1- </span><span style='color:#00FF00;'>1- </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>2+ </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>2- </span><span style='color:#00FF00;'>2- </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>2* </span><span style='color:#00FF00;'>2* </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>4* </span><span style='color:#00FF00;'>4* </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>8* </span><span style='color:#00FF00;'>8* </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>16* </span><span style='color:#00FF00;'>16* </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>256* </span><span style='color:#00FF00;'>256* </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>2/ </span><span style='color:#00FF00;'>2/ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>4/ </span><span style='color:#00FF00;'>4/ </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>a>b </span><span style='color:#00FF00;'>a>b </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>a>c </span><span style='color:#00FF00;'>a>c </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>b>a </span><span style='color:#00FF00;'>b>a </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>b>c </span><span style='color:#00FF00;'>b>c </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>c>a </span><span style='color:#00FF00;'>c>a </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>c>b </span><span style='color:#00FF00;'>c>b </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>@ </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>c@ </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>! </span><span style='color:#00FF00;'>! </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>c! </span><span style='color:#00FF00;'>c! </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>port@ </span><span style='color:#00FF00;'>port@ </span><span style='color:#00FF00;'>; </span><span style='color:#FF0000;'>port! </span><span style='color:#00FF00;'>port! </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>divide by 16 </span><br />
+<br />
+<span style='color:#FF0000;'>16/ </span><span style='color:#00FF00;'>4/ </span><span style='color:#00FF00;'>4/ </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>absolute value : note : falls through to negate </span><br />
+<br />
+<span style='color:#FF0000;'>abs </span><span style='color:#FFFF00;'>{bit.7,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><br />
+<br />
+<span style='color:#FFFFFF;'>negate (2's complement) a </span><br />
+<br />
+<span style='color:#FF0000;'>0- </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{cpl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{cpl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{inc.hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>not (1's complement) a </span><br />
+<br />
+<span style='color:#FF0000;'>not </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{cpl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{cpl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>check equal zero. </span><br />
+<br />
+<span style='color:#FF0000;'>0= </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>0 </span><span style='color:#FFFF00;'>, </span><span style='color:#FFFF00;'>{ret.nz} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>check less zero. </span><br />
+<br />
+<span style='color:#FF0000;'>0< </span><span style='color:#FFFF00;'>{bit.7,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>0 </span><span style='color:#FFFF00;'>, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>halt the cpu </span><br />
+<br />
+<span style='color:#FF0000;'>halt </span><span style='color:#FFFF00;'>{di} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{halt} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{jrrr} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>$fc </span><span style='color:#FFFF00;'>, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>equality testers </span><br />
+<br />
+<span style='color:#FF0000;'>= </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>0 </span><span style='color:#FFFF00;'>, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'><> </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>-1 </span><span style='color:#FFFF00;'>, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>comparision testers </span><br />
+<br />
+<span style='color:#FF0000;'>>= </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><br />
+<span style='color:#FF0000;'>> </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.a,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'><= </span><span style='color:#FFFF00;'>{inc.hl} </span><span style='color:#FFFF00;'>a, </span><br />
+<span style='color:#FF0000;'>< </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ex.de,hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.a,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ex.de,hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>binary operators </span><br />
+<br />
+<span style='color:#FF0000;'>and </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{and.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{and.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>or </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>xor </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{xor.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{xor.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>minimum / maximum values </span><br />
+<br />
+<span style='color:#FF0000;'>min </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.m} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>max </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.p} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>get free code address variable address & current value </span><br />
+<br />
+<span style='color:#FF0000;'>h </span><span style='color:#00FF00;'>$8004 </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>here </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>this code is macro structures </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>loop locations for internal structures </span><br />
+<br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>if.marker </span><span style='color:#FFFFFF;'>branch position for if marker. </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>begin.marker </span><span style='color:#FFFFFF;'>branch back for begin </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>for.marker </span><span style='color:#FFFFFF;'>branch back for for </span><br />
+<br />
+<span style='color:#FFFF00;'>macros </span><br />
+<br />
+<span style='color:#FFFFFF;'>set private macro. </span><br />
+<br />
+<span style='color:#FF0000;'>private </span><span style='color:#00FF00;'>$80 </span><span style='color:#00FF00;'>orflagbits </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>if ... then code </span><br />
+<br />
+<span style='color:#FF0000;'>if </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>-if </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>then </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker@ </span><span style='color:#00FF00;'>! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>begin ... until code </span><br />
+<br />
+<span style='color:#FF0000;'>begin </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>begin.marker! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>until </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>begin.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>-until </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>begin.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>for ... next code </span><br />
+<br />
+<span style='color:#FF0000;'>for </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>for.marker! </span><br />
+<span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>next </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.nz,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>for.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>i </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFF00;'>words </span><br />
+</body></html>

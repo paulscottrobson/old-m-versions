@@ -1,0 +1,35 @@
+// ***************************************************************************************
+//
+//		These are words that are imported into the main dictionaries automatically.
+//
+// ***************************************************************************************
+
+<32> 											// puts in page 32/$20 (normal words)
+
+c, 			FMCompileByteL 						// compiles a single byte in HL
+, 			FMCompileWord 						// compiles a word in HL in low/high order
+a, 			FMCompileAssembly 					// compiles 00xx as xx, hhll as hh ll (for assembler stuff)
+words		DICTSetWordDictionary 				// Select word dictionary
+macros 		DICTSetImmediateDictionary 			// Select immediate dictionary
+.h 			DebugPrintHLHex 					// Print A in hex
+debug 		DebugShowABC 						// Show A,B and C.
+sp.reset	ResetStackPointer 					// Return to same level but reset stack pointer
+/			DivideWord 							// Arithmetic
+mod 		ModulusWord
+* 			Multiply16 
+fill 		FillWord 							// Fill C Bytes with B starting at A
+copy 		CopyWord 							// Copy C Bytes from B to A
+cursor! 	IOSetCursor 						// Set cursor position to A
+clr.screen 	IOClearScreen 						// Clear the screen.
+screen! 	IOWriteCharacterE 					// 2+6 bit character B at A
+key@		IOReadCharacterHL					// Read character into A	
+orflagbits	DICTSetLastCreatedFlagBitsL 		// or flag bits on last created dictionary item with A
+crunch		DICTCrunch 							// crunch both dictionaries (remove private)
+buffer		GetBuffer							// Buffer address
+buffer.size	GetBufferSize 						// Buffer size.
+x.debug 	XDebug 								// Debug but show the variables being executed not CPU Status
+do.source	BLOCKCompileMemory 					// Compile memory from A to B
+
+<34>
+variable	VARCreate 							// Create a variable
+

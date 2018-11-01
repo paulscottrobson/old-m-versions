@@ -1,0 +1,52 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      debug
+;      @type      word
+;      @desc      display A+B at the bottom right
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		push 	bc
+		push 	de
+		push 	hl
+
+		push 	de
+		ex 		de,hl
+		ld 		b,$C0
+		ld 		hl,23+23*32
+		call 	__DisplayHexInteger
+		pop 	de
+		ld 		b,$80
+		ld 		hl,28+23*32
+		call 	__DisplayHexInteger
+
+		pop 	hl
+		pop 	de
+		pop 	bc
+		ret		
+
+__DisplayHexInteger:
+		ld 		a,d
+		call 	__DisplayHexByte
+		ld 		a,e
+__DisplayHexByte:
+		push 	af
+		rrca
+		rrca
+		rrca
+		rrca
+		call	__DisplayHexNibble
+		pop 	af
+__DisplayHexNibble:
+		and 	$0F
+		cp 		10
+		jr 		c,__DisplayIntCh
+		sub 	57
+__DisplayIntCh:
+		add 	a,48
+		or 		b
+		call	IOWriteCharacter
+		inc 	hl
+		ret

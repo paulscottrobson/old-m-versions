@@ -1,0 +1,116 @@
+// ***********************************************************************************************
+// ***********************************************************************************************
+//
+//		Name : 		core.zf
+//		Purpose : 	Core routines
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Created : 	29th October 2018
+//
+// ***********************************************************************************************
+// ***********************************************************************************************
+
+// ***********************************************************************************************
+//
+//										Defining word (:)
+//
+// ***********************************************************************************************
+
+execute
+	parser.get.check.add : 							// Get the ':' into the parser buffer
+													// add it to the dictionary.	
+	65 dict.xor.type 								// Make it a macro and compile.only
+
+	compile											// This is what it actually does when executed
+	parser.get.check.add 							// It gets a parsed word and adds that.
+	execute {ret} i, compile						// and then returns, so compile code to return.
+
+// ***********************************************************************************************
+//
+//										 Return (;)
+//
+// ***********************************************************************************************
+
+: ;
+	compile {ret} i, 								// compiles the code to compile ret
+	execute {ret} i, 								// then actually compile a ret
+	65 dict.xor.type compile						// and make that immediate and compile only
+
+// ***********************************************************************************************
+//
+//									Make last word a macro
+//
+// ***********************************************************************************************
+
+: macro 
+	compile	1 dict.xor.type 						// compiles the code to make a macro
+	execute 1 dict.xor.type compile 				// is itself a macro
+; 
+
+// ***********************************************************************************************
+//
+//						Make last words : private and compile.only
+//
+// ***********************************************************************************************
+
+: private 128 dict.xor.type ; macro
+: compile.only 64 dict.xor.type ; macro
+
+// ***********************************************************************************************
+//
+//							 Insert a break point (CSpect.exe)
+//
+// ***********************************************************************************************
+
+: break
+	221 c, 1 c,											// $DD $01 inserts breakpoint in CSpect
+; macro compile.only 
+
+// ***********************************************************************************************
+//
+//				Binary Arithmetic/Logic (note * / mod and /mod are internal)
+//
+// ***********************************************************************************************
+//	These are typical words. + and - are marked macro compile.only, which means you can't execute
+//	them. Later on they are redefined (i.e. : + + ;) to produce an equivalent executable one. 
+//	The And/Or/Xor operators are non macro words, so they are executed or a call is compiled to then
+//	These are simpler but slower. It is a trade off for these words between size (6 bytes vs 3 bytes)
+//  and speed (overhead of a call/return).
+// ***********************************************************************************************
+
+: + 
+	{add_hl,de} i, 
+; macro compile.only
+
+: - 
+	{ld_b,h} i, {ld_c,l} i, {ld_h,d} i, {ld_l,e} i, 
+	{xor_a} i, {sbc_hl,bc} i,
+; macro compile.only
+
+
+: and execute 
+	{ld_a,h} i, {and_d} i, {ld_h,a} i,
+	{ld_a,l} i, {and_e} i, {ld_l,a} i,
+compile ;
+
+: or execute 
+	{ld_a,h} i, {or_d} i, {ld_h,a} i,
+	{ld_a,l} i, {or_e} i, {ld_l,a} i,
+compile ;
+
+: xor execute 
+	{ld_a,h} i, {xor_d} i, {ld_h,a} i,
+	{ld_a,l} i, {xor_e} i, {ld_l,a} i,
+compile ;
+
+// ***********************************************************************************************
+
+: + + ;				: - - ;
+
+// ***********************************************************************************************
+
+: test 3 259 xor .hex ;
+
+execute 
+test 4 5 xor .hex
+debug halt
+

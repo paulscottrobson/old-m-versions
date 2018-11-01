@@ -1,0 +1,24 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      -
+;      @type      macro
+;      @desc      Subtract A from B, result in A, B unchanged
+;
+; *******************************************************************************
+; *******************************************************************************
+
+		ld 		b,h 								; value to subtract in BC		
+		ld 		c,l 		
+
+		ld		h,d 								; value to subtract from in HL
+		ld 		l,e 
+
+		xor  	a 									; clear carry
+		sbc 	hl,bc 								; and subtract.
+		
+;
+;	this is very long for a macro (7 bytes); having it as a call reduces it to 3 but adds
+; 	the call/ret overhead. So as a policy, only use - when you actually have to, e.g. use 
+;	unary words 1- 2- and if you want to subtract 4 use -4 + 
+;

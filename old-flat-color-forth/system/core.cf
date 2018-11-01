@@ -1,0 +1,384 @@
+// ***********************************************************************************************
+// ***********************************************************************************************
+//
+//		Name : 		core.cf
+//		Purpose : 	Core words for bootstrapping
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Created : 	27th October 2018
+//
+// ***********************************************************************************************
+// ***********************************************************************************************
+
+{{ macro }} 
+
+// ***********************************************************************************************
+//
+//										 Return (;s)
+//
+// ***********************************************************************************************
+
+:;s 
+	{ret} i, {{ {ret} i, }} 							// code to }} RET ($C9) followed by RET
+	{{ 128 dict.xor.type }} 							// make it private
+
+// This is a 'working' ; operator because the actual semicolon operator closes open if
+// statements. 
+
+// ***********************************************************************************************
+//
+//						Make the last definition private
+//
+// ***********************************************************************************************
+
+:private
+	128 dict.xor.type 									// code that does the switch
+;s
+
+// ***********************************************************************************************
+//
+//								Insert a break point
+//
+// ***********************************************************************************************
+
+:break
+	221 c, 1 c,											// $DD $01 inserts breakpoint in CSpect
+;s 
+
+// ***********************************************************************************************
+//
+//					Binary Arithmetic/Logic (note * / and mod are internal)
+//
+// ***********************************************************************************************
+
+{{ macro }}
+:+ {add_hl,de} i, ;s  
+
+{{ forth }}
+:and {{ 
+	{ld_a,h} i, {and_d} i, {ld_h,a} i,
+	{ld_a,l} i, {and_e} i, {ld_l,a} i,
+}} ;s
+
+:+or {{ 
+	{ld_a,h} i, {or_d} i, {ld_h,a} i,
+	{ld_a,l} i, {or_e} i, {ld_l,a} i,
+}} ;s
+
+:or {{ 
+	{ld_a,h} i, {xor_d} i, {ld_h,a} i,
+	{ld_a,l} i, {xor_e} i, {ld_l,a} i,
+}} ;s
+
+// ***********************************************************************************************
+//
+//									Unary Arithmetic/Logic 
+//
+// ***********************************************************************************************
+
+{{ forth }}
+
+:0= {{ 													// true if A = 0
+	{ld_a,h} i, {or_l} i, 
+	{ld_hl,aaaa} i, 0 , {ret_nz} i,
+	{dec_hl} i,
+}} ;s
+
+:0< {{ 													// true if A < 0
+	{bit_7,h} i,  
+	{ld_hl,aaaa} i, 0 , {ret_z} i,
+	{dec_hl} i,
+}} ;s
+
+:abs {{  												// Absolute value
+	{bit_7,h} i, {ret_z} i,  							// falls through into 0-
+}} 														// hence must be before it :)
+
+:negate {{ 												// 2's complement
+	{ld_a,h} i, {cpl} i, {ld_h,a} i,
+	{ld_a,l} i, {cpl} i, {ld_l,a} i,
+	{inc_hl} i, 
+}} ;s
+
+:- {{ 													// 1's complement
+	{ld_a,h} i, {cpl} i, {ld_h,a} i,
+	{ld_a,l} i, {cpl} i, {ld_l,a} i,
+}} ;s
+
+
+{{ macro }}
+
+:1+ {inc_hl} i, ;s 
+:2+ {inc_hl} i, {inc_hl} i, ;s 
+:1- {dec_hl} i, ;s 
+:2- {dec_hl} i, {dec_hl} i, ;s 
+
+:2* {add_hl,hl} i, ;s 
+:4* {add_hl,hl} i, {add_hl,hl} i, ;s 
+:8* {add_hl,hl} i, {add_hl,hl} i, {add_hl,hl} i, ;s 
+:16* {add_hl,hl} i, {add_hl,hl} i, {add_hl,hl} i, {add_hl,hl} i, ;s 
+
+:256* {ld_h,l} i, {ld_l,dd} i, 0 c, ;s 
+
+:2/ {sra_h} i, {rr_l} i, ;s 
+
+:bswap {ld_a,l} i, {ld_l,h} i, {ld_h,a} i, ;s 
+
+{{ forth }}
+
+:4/ 2/ 2/ ;s 											// these use that macro but are words
+:16/ 2/ 2/ 2/ 2/ ;s
+
+:256/ 
+	{ld_l,h} i, {ld_h,dd} i, 0 c,
+	{bit_7,l} i, {ret_z} i, {dec_h} i,
+;s
+
+// ***********************************************************************************************
+//
+//								Memory/Port Access 
+//
+// ***********************************************************************************************
+
+{{ macro }}
+:c@ 	{ld_l,(hl)} i, {ld_h,dd} i, 0 c, ;s 
+:@ 		{ld_a,(hl)} i, {inc_hl} i, {ld_h,(hl)} i, {ld_l,a} i, ;s 
+
+:c! 	{ld_(hl),e} i, ;s 
+:!     	{ld_(hl),e} i, {inc_hl} i, {ld_(hl),d} i, {dec_hl} i,  ;s 
+
+:p@ 	{ld_c,l} i, {ld_b,h} i, {in_l,(c)} i, {ld_h,dd} i, 0 c, ;s 
+:p! 	{ld_c,l} i, {ld_b,h} i, {out_(c),e} i, ;s 
+
+{{ forth }}
+:+! 	{{
+			{ld_a,e} i, {add_a,(hl)} i, {ld_(hl),a} i, {inc_hl} i,
+			{ld_a,d} i, {adc_a,(hl)} i, {ld_(hl),a} i, {dec_hl} i,
+		}} ;s
+
+:or! 	{{
+			{ld_a,e} i, {or_(hl)} i, {ld_(hl),a} i, {inc_hl} i,
+			{ld_a,d} i, {or_(hl)} i, {ld_(hl),a} i, {dec_hl} i,
+		}} ;s
+
+// ***********************************************************************************************
+//
+//								 Register routines
+//
+// ***********************************************************************************************
+
+{{ macro }} 
+
+:swap 	{ex_de,hl} i, ;s 
+:a>b 	{ld_e,l} i, {ld_d,h} i, ;s 
+:b>a 	{ld_l,e} i, {ld_h,d} i, ;s 
+
+// None of the register stack/destack instructions has an executable equivalent.
+// as it would crash the system :)  ;s does not have an executable equivalent for the same reason.
+
+:ab>r 	{push_de} i, {push_hl} i, ;s 
+:r>ab 	{pop_hl} i, {pop_de} i, ;s 
+
+:a>r 	{push_hl} i, ;s 
+:r>a 	{pop_hl} i, ;s 
+
+:b>r 	{push_de} i, ;s 
+:r>b 	{pop_de} i, ;s 
+
+// ***********************************************************************************************
+//
+//									Comparison routines
+//
+// ***********************************************************************************************
+
+{{ forth }}
+
+:less   							// For CF compatibility
+:< 		1- <= ;s					// Simple synthesis which will not work if A = -32768
+:>= 	1- > ;s
+
+// ***********************************************************************************************
+//
+//			Words which are macros (e.g. code generators) have associated executables
+// 			where appropriate (i.e. they don't manipulate the return stack)
+//
+// ***********************************************************************************************
+
+{{ forth }}
+
+:+ + ;s 	:1+ 1+ ;s 		:2+ 2+ ;s 		:1- 1- ;s		:2- 2- ;s		:2* 2* ;s 	:4* 4* ;s
+:8* 8* ;s	:16* 16* ;s		:256* 256* ;s	:2/ 2/ ;s 		:bswap bswap ;s	:c@ c@ ;s	:@ @ ;s
+:c! c! ;s 	:! ! ;s 		:p@ p@ ;s		:p! p! ;s		:swap swap ;s	:a>b a>b ;s	:b>a b>a ;s
+
+
+// ***********************************************************************************************
+//
+//									Variable functionality
+//
+// ***********************************************************************************************
+
+{{ forth }}
+
+:h a>r sys.info r>b ;s								// read dictionary address next free doing A->B 
+:here h @ ;s										// read current next free value
+
+:here.adjust here + h ! ;s private					// Adjust here by the given amount.
+
+{{ macro }}
+
+:variable 
+	0 , 			 								// }} a 0 for storage
+	160 dict.xor.type								// make private and variable.
+;s 
+
+:@@  	 											// adjust variable to load value not address
+	-3 here.adjust 									// converts ex de,hl : ld hl,xxxx 
+	{ld_hl,(aaaa)} i,  								// to       ex de,hl : ld hl,(xxxx)
+	2 here.adjust 
+;s 
+
+:!! 	 											// adjust variable to save value not address
+	-4 here.adjust 									// converts ex de,hl : ld hl,xxxx
+	{nop} i, 										// to       nop : ld (xxxx),hl
+	{ld_(aaaa),hl} i, 
+	2 here.adjust 
+;s 
+
+// ***********************************************************************************************
+//
+//										[-]If ... Then
+//
+// ***********************************************************************************************
+
+{{ forth }}
+
+:if.branch.address variable 						// Address of jump target.
+
+{{ macro }}
+
+:if 
+	{ld_a,h} i, {or_l} i,							// check if HL = 0
+	{jp_z,aaaa} i, 									// skip if zero
+	here if.branch.address !! 						// remember where branch address goes
+	incomplete.branch , 							// temporary branch address is warm start
+;s 
+
+:-if 
+	{bit_7,h} i,									// check if HL < 0
+	{jp_z,aaaa} i, 									// skip if zero
+	here if.branch.address !! 						// remember where branch address goes
+	incomplete.branch , 							// temporary branch address is warm start
+;s 
+
+{{ forth }} 										// exists an executable as called on ;
+:then.executable private
+	here a>r a>r									// Push here on twice
+	if.branch.address @@ h ! 						// Set to }} at branch address
+	r>a , 											// }} branch address
+	r>a h ! 										// Put back at original position.
+	0 if.branch.address !! 							// zero branch address indicating closed
+;s 
+
+{{ macro }}
+:then then.executable ;s 							// macro version just calls the routine.
+
+// ***********************************************************************************************
+//
+//							This version of ; also closes any open ifs.
+//
+// ***********************************************************************************************
+
+{{ macro }}
+:;  
+	{ret} c, 										// compile the ret.
+	if.branch.address @@ if then.executable then 	// if if open close it.
+;s
+
+// ***********************************************************************************************
+//
+//										Begin .. [-]Until/Again
+//
+// ***********************************************************************************************
+
+{{ forth }}
+:begin.branch.address variable						// Branch back here.
+
+{{ macro }}
+
+:begin
+	here begin.branch.address !! 					// Save loop address
+;s 
+
+:until 
+	{ld_a,h} i, {or_l} i,							// check if HL = 0
+	{jp_z,aaaa} i, 									// loop back if +ve
+	begin.branch.address @@ ,
+;s 
+
+:-until 
+	{bit_7,h} i,									// check if HL < 0
+	{jp_z,aaaa} i, 									// loop back if +ve
+	begin.branch.address @@ ,
+;s 
+
+:again
+	{jp_aaaa} i, 									// loop back always
+	begin.branch.address @@ ,
+;s
+
+// ***********************************************************************************************
+//
+//											Max and Min
+//
+// ***********************************************************************************************
+
+{{ forth }}
+:max ab>r < if r>ab ;s then r>ab b>a ;s
+:min ab>r > if r>ab ;s then r>ab b>a ;s
+
+// ***********************************************************************************************
+//
+//										For / [-]Next loop
+//
+// ***********************************************************************************************
+
+{{ forth }}
+:for.loop.address variable
+
+{{ macro }}
+:for
+	{ld_b,h} i, {ld_c,l} i, 						// put loop value in BC
+	here for.loop.address !!						// save loop address
+	{push_bc} i, 									// push on stack
+; 
+
+:next
+	{pop_bc} i,										// pop index off stack
+	{dec_bc} i, 									// decrement count
+	{ld_a,b} i, {or_c} i,							// check if BC != 0
+	{jp_nz,aaaa} i, 								// loop back if non zero
+	for.loop.address @@ , 							// to the loop address	
+; 
+
+:-next
+	{pop_bc} i,										// pop index off stack
+	{dec_bc} i, 									// decrement count
+	{bit_7,b} i,									// check positive
+	{jp_z,aaaa} i, 									// loop back if positive
+	for.loop.address @@ , 							// to the loop address	
+; 
+
+:i 	
+	{pop_hl} i,										// pop index off stack
+	{push_hl} i,									// push it back.
+; 
+
+{{ forth }}
+{{ dict.crunch }}									// remove all privates.
+
+// ***********************************************************************************************
+//									Core updates
+//
+//	29-10-18		Core v1. Completed.
+//
+// ***********************************************************************************************
+

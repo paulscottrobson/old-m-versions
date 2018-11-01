@@ -1,0 +1,22 @@
+; ****************************************************************
+; ****************************************************************
+;
+;;      Name  <=
+;;      Type  word
+;
+;;$		Set A to (B <= A)
+;
+; ****************************************************************
+; ****************************************************************
+
+__LessEqual:
+		xor 	a									; clear carry
+		sbc 	hl,de 								; subtract for comparison
+		ld  	a,h 								; preserve MSB in A for sign bit
+		add 	hl,de 								; fix values back.
+		bit 	7,a 								; check bit 7
+		jr 		z,SetTrue 						
+		jr 		SetFalse
+		ret
+
+		

@@ -1,0 +1,25 @@
+//
+//									Paging testing program
+//
+:here!   <ld.(aaaa),hl> [32772] [,] ;
+:here.page! <ld.a,l> <ld.(aaaa),a> [32774] [,] ;
+
+[49152] [here!] [50] [here.page!]
+
+:word2 42 .h ;
+
+[49152] [here!] [52] [here.page!]
+
+:word1 	word2 word2 ;
+
+[49152] [here!] [54] [here.page!]
+
+:xxxx 
+
+//[56577] [i,] 
+word1
+
+debug ;
+
+[xxxx]
+	

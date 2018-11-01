@@ -1,0 +1,95 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :   words.m8 </span><br />
+<span style='color:#FFFFFF;'>author :  paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose :  more standard words in m8 </span><br />
+<span style='color:#FFFFFF;'>date :   15th september 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>equality testers </span><br />
+<br />
+<span style='color:#FF0000;'>= </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>0 </span><span style='color:#FFFF00;'>, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'><> </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.z} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.hl,aaaa} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>-1 </span><span style='color:#FFFF00;'>, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>comparision testers </span><br />
+<br />
+<span style='color:#FF0000;'>>= </span><span style='color:#FFFF00;'>{dec.hl} </span><span style='color:#FFFF00;'>a, </span><br />
+<span style='color:#FF0000;'>> </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.a,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'><= </span><span style='color:#FFFF00;'>{inc.hl} </span><span style='color:#FFFF00;'>a, </span><br />
+<span style='color:#FF0000;'>< </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ex.de,hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.a,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ex.de,hl} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>binary operators </span><br />
+<br />
+<span style='color:#FF0000;'>and </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{and.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{and.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>or </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>xor </span><span style='color:#FFFF00;'>{ld.a,l} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{xor.e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{xor.d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>minimum / maximum values </span><br />
+<br />
+<span style='color:#FF0000;'>min </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.m} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>max </span><span style='color:#FFFF00;'>{xor.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{sbc.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.a,h} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{add.hl,de} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{or.a} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ret.p} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.l,e} </span><span style='color:#FFFF00;'>a, </span><span style='color:#FFFF00;'>{ld.h,d} </span><span style='color:#FFFF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>dictionary next free / program next free </span><br />
+<br />
+<span style='color:#FF0000;'>here </span><span style='color:#00FF00;'>b>r </span><span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>here.d </span><span style='color:#00FF00;'>b>r </span><span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>2+ </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>this code is macro structures </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>loop locations for internal structures </span><br />
+<br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>if.marker </span><span style='color:#FFFFFF;'>branch position for if marker. </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>begin.marker </span><span style='color:#FFFFFF;'>branch back for begin </span><br />
+<span style='color:#00FF00;'>variable </span><span style='color:#00FF00;'>for.marker </span><span style='color:#FFFFFF;'>branch back for for </span><br />
+<br />
+<span style='color:#FFFF00;'>macros </span><br />
+<br />
+<span style='color:#FFFFFF;'>if ... then code </span><br />
+<br />
+<span style='color:#FF0000;'>if </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>-if </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>then </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker@ </span><span style='color:#00FF00;'>! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>begin ... until code </span><br />
+<br />
+<span style='color:#FF0000;'>begin </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>begin.marker! </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>until </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>begin.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>-until </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>begin.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>for ... next code </span><br />
+<br />
+<span style='color:#FF0000;'>for </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>for.marker! </span><br />
+<span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>next </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{jp.nz,aaaa} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>for.marker@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>i </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>a, </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFF00;'>mwords </span><br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

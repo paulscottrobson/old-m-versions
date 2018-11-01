@@ -1,0 +1,32 @@
+uses console
+uses editor
+uses debugloader
+uses dump
+uses vlist
+
+import runtime.m8
+
+variable x
+
+: main 
+
+con.clear con.white
+
+x@ con.print.word con.cr
+
+editor.clear
+dbl.reset
+dbl.compile
+	"xor dbl.w
+
+here  a>r
+
+buffer.reset
+buffer.get
+con.print.string con.cr con.cr
+
+con.red run.compile con.print.word con.cr
+
+con.yellow
+r>a 8 - mem.dump
+debug halt ;

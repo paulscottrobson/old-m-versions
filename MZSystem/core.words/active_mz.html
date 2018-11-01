@@ -1,0 +1,120 @@
+<html><head></head><body style='background-color:black;font-family:sans-serif;font-size:1.5em'>
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<span style='color:#FFFFFF;'>name :   active.mz </span><br />
+<span style='color:#FFFFFF;'>author :  paul robson (paul@robsons.org.uk) </span><br />
+<span style='color:#FFFFFF;'>purpose :  active compilation functions </span><br />
+<span style='color:#FFFFFF;'>date :   2nd october 2018 </span><br />
+<br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<span style='color:#FFFFFF;'>******************************************************************************************************** </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>mark something private </span><br />
+<br />
+<span style='color:#FF0000;'>private </span><span style='color:#00FF00;'>128 </span><span style='color:#00FF00;'>or.type.id </span><span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>words to access h (address of current pointer) and here (value of current pointer) </span><br />
+<br />
+<span style='color:#FF0000;'>h </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>6 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>here </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>dictionary equivalents (address and value of current pointer) </span><br />
+<br />
+<span style='color:#FF0000;'>dict.h </span><span style='color:#00FF00;'>a>r </span><span style='color:#00FF00;'>sys.info </span><span style='color:#00FF00;'>4 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>r>b </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>dict.here </span><span style='color:#00FF00;'>dict.h </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFFFF;'>variables </span><br />
+<br />
+<span style='color:#FF0000;'>variable </span><br />
+<span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><span style='color:#00FF00;'>129 </span><span style='color:#00FF00;'>or.type.id </span><span style='color:#00FF00;'>r>ab </span><span style='color:#FFFFFF;'>sets type to '1' and private, compiles 0 to allow for value </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>variable mutators. a variable normally generates ex de,hl ; ld hl,xxxx ; these modifiers rewrite </span><br />
+<span style='color:#FFFFFF;'>that to ex de,hl ; ld hl,(xxxx) and nop ; ld (xxxx),hl for read and write respectively. </span><br />
+<br />
+<span style='color:#FF0000;'>@@ </span><span style='color:#FFFFFF;'>variable reader. </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>a>r </span><span style='color:#FFFFFF;'>save here </span><br />
+<span style='color:#00FF00;'>-3 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>! </span><span style='color:#00FF00;'>42 </span><span style='color:#00FF00;'>c, </span><span style='color:#FFFFFF;'>go back 3, and compile 42 $2a : ld hl,(xxxx) replacing ld hl,xxxx </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>! </span><span style='color:#FFFFFF;'>restore here </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>!! </span><span style='color:#FFFFFF;'>variable writer </span><br />
+<span style='color:#00FF00;'>ab>r </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>a>r </span><span style='color:#FFFFFF;'>save here </span><br />
+<span style='color:#00FF00;'>-4 </span><span style='color:#00FF00;'>+ </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>c, </span><span style='color:#00FF00;'>34 </span><span style='color:#00FF00;'>c, </span><span style='color:#FFFFFF;'>go back 4, and compile  00 (nop) 42 ($2a : ld hl,(xxxx) </span><br />
+<span style='color:#FFFFFF;'>replacing ex de,hl ; ld hl,xxxx </span><br />
+<span style='color:#00FF00;'>r>a </span><span style='color:#00FF00;'>h </span><span style='color:#00FF00;'>! </span><span style='color:#FFFFFF;'>restore here </span><br />
+<span style='color:#00FF00;'>r>ab </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>loop locations for internal structures </span><br />
+<br />
+<span style='color:#FF0000;'>if.marker </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>branch position for if marker. </span><br />
+<span style='color:#FF0000;'>begin.marker </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>branch back for begin </span><br />
+<span style='color:#FF0000;'>for.marker </span><span style='color:#00FF00;'>variable </span><span style='color:#FFFFFF;'>branch back for for </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>[-]if ... then code </span><br />
+<br />
+<span style='color:#FF0000;'>if </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>i, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker </span><span style='color:#00FF00;'>!! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>-if </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>i, </span><br />
+<span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>if.marker </span><span style='color:#00FF00;'>!! </span><span style='color:#00FF00;'>0 </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>then </span><span style='color:#00FF00;'>if.marker </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>swap </span><span style='color:#00FF00;'>! </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>begin ... [-]until code </span><br />
+<br />
+<span style='color:#FF0000;'>begin </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>begin.marker </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>until </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>begin.marker </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>-until </span><span style='color:#00FF00;'>{bit.7,h} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{jp.z,aaaa} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>begin.marker </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>for ... next code </span><br />
+<br />
+<br />
+<span style='color:#FF0000;'>for </span><span style='color:#00FF00;'>here </span><span style='color:#00FF00;'>for.marker </span><span style='color:#00FF00;'>!! </span><br />
+<span style='color:#00FF00;'>{dec.hl} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>i, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>next </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{ld.a,h} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{or.l} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{jp.nz,aaaa} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>for.marker </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<span style='color:#FF0000;'>i </span><span style='color:#00FF00;'>{ex.de,hl} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{pop.hl} </span><span style='color:#00FF00;'>i, </span><span style='color:#00FF00;'>{push.hl} </span><span style='color:#00FF00;'>i, </span><br />
+<span style='color:#00FF00;'>; </span><span style='color:#00FF00;'>macro </span><span style='color:#00FF00;'>compile.only </span><br />
+<br />
+<br />
+<br />
+<span style='color:#FFFFFF;'>far page read/write. set page with page.select and use page.@ etc. to access </span><br />
+<span style='color:#FFFFFF;'>and update paged memory. </span><br />
+<br />
+<span style='color:#FF0000;'>page.requested </span><span style='color:#00FF00;'>variable </span><br />
+<br />
+<span style='color:#FF0000;'>page.select </span><span style='color:#00FF00;'>page.requested </span><span style='color:#00FF00;'>!! </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>page.c@ </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>page.requested </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>page.switch </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>c@ </span><span style='color:#00FF00;'>page.restore </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>page.@ </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>page.requested </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>page.switch </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>@ </span><span style='color:#00FF00;'>page.restore </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FF0000;'>page.! </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>page.requested </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>page.switch </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>! </span><span style='color:#00FF00;'>page.restore </span><span style='color:#00FF00;'>; </span><br />
+<span style='color:#FF0000;'>page.c! </span><span style='color:#00FF00;'>ab>r </span><span style='color:#00FF00;'>page.requested </span><span style='color:#00FF00;'>@@ </span><span style='color:#00FF00;'>page.switch </span><span style='color:#00FF00;'>r>ab </span><span style='color:#00FF00;'>c! </span><span style='color:#00FF00;'>page.restore </span><span style='color:#00FF00;'>; </span><br />
+<br />
+<span style='color:#FFFF00;'>crunch </span><br />
+<span style='color:#FFFF00;'>crunch </span><br />
+</body></html>

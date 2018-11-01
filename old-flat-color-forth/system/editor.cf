@@ -1,0 +1,47 @@
+// ********************************************************************************************************
+// ********************************************************************************************************
+//
+//		Name :		editor.cf
+//		Author :	Paul Robson (paul@robsons.org.uk)
+//		Purpose :	Screen Editor
+//		Date :		29th October 2018
+//
+// ********************************************************************************************************
+// ********************************************************************************************************
+
+{{ forth }}
+
+:editor.ystart variable										// Y Start position in rows
+:editor.yheight variable 									// Height in rows
+:editor.size variable  										// Number of characters to print.
+:editor.width variable 										// Line width
+:editor.pos variable										// Cursor position.
+
+// ********************************************************************************************************
+//
+//						Editor setup. B is yPosition, A is height in lines.
+//
+// ********************************************************************************************************
+
+:editor.setup
+	ab>r 
+		editor.yheight !! swap editor.ystart !! 			// Save start and height
+		sys.info 36 + @ editor.width !!  					// Save width of line
+		editor.yheight @@ * editor.size !!
+		0 editor.pos !!
+	r>ab 
+;
+
+:editor.refresh
+	0 editor.ystart @@ io.raw.move 							// Start position
+	edit.buffer 1- editor.size @@ 
+	for 
+		b>a 1+ a>r 
+		0 swap io.raw.print.2+6
+		r>b
+	next
+	editor.pos @@ edit.buffer + c@ 							// read character at cursor
+	editor.pos @@ editor.width @@ /mod swap
+	a>r swap 4 + swap r>a io.raw.move 
+	128 io.raw.print debug halt
+;

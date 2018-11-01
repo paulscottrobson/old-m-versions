@@ -1,0 +1,65 @@
+; *******************************************************************************
+; *******************************************************************************
+;
+;      @name      compiler.find
+;      @type      slow
+;      @desc      look for dictionary entry, name at A, return in A or $0000
+;				  because it scans forward it keeps the latest match.
+;
+; *******************************************************************************
+; *******************************************************************************
+
+SearchDictionary:
+		ld 		(__SDWordToCheck),hl 				; save the check address
+		ld 		hl,$0000							; zero the result
+		ld 		(__SDResult),hl
+		ld 		hl,(SIDictionaryStart)				; start of dictionary => HL
+__SDLoop:
+		ld 		a,(hl)								; reached the end ?
+		or 		a
+		jr 		nz,__SDNext
+		ld 		hl,(__SDResult) 					; return the result
+		ret
+__SDNext:
+		call 	__SDCompare
+		ld 		a,(hl)								; offset to next
+		ld 		c,a 								; put in BC
+		ld 		b,0
+		add 	hl,bc 								; go to next entry
+		jr 		__SDLoop
+;
+;		Does the provided word match the one in the dictionary.
+;
+
+__SDCompare:
+		push 	de
+		push 	hl
+		ld 		de,(__SDWordToCheck)				; DE is the word to check, HL the current position
+		inc 	hl 									; move pointer to first character.
+		inc 	hl
+		inc 	hl
+		inc 	hl
+		inc 	hl
+__SDCLoop:
+		ld 		a,(de)								; get byte from word
+		xor 	(hl)								; compare with byte in dictionary
+		and 	$7F 								; ignore bit 7 which marks the end for now.
+		jr 		nz,__SDExit 						; different then exit
+		ld 		a,(hl)								; get dictionary byte
+		inc 	hl 									; go to next character
+		inc 	de
+		bit 	7,a 								; reached the end
+		jr 		z,__SDCLoop 						; which is dictionary bit 7 high.
+		pop 	hl 									; restore
+		pop 	de
+		ld 		(__SDResult),hl 					; overrides result
+		ret
+__SDExit:
+		pop 	hl 									; exit, with no result update
+		pop 	de
+		ret
+
+__SDWordToCheck:
+		dw 		0
+__SDResult:
+		dw 		0
